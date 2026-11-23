@@ -1,0 +1,6 @@
+# UI container: Streamlit only (all ML work happens in the API).
+streamlit==1.67.0
+altair==6.3.0
+pandas==3.1.1
+requests==2.34.2
+PyYAML==6.0.4

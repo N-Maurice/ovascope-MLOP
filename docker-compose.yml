@@ -1,0 +1,44 @@
+# OvaScope stack:  nginx (port 8000) -> N x API containers ;  Streamlit UI (port 8501)
+#
+#   python scripts/export_artifacts.py            # once: builds data/bundle (needed by retraining)
+#   docker compose up -d --build                  # 1 API container
+#   docker compose up -d --scale api=3            # 3 API containers behind nginx
+#   curl localhost:8000/health                    # "instance" shows which container answered
+#   docker compose logs -f api                    # logs
+#   docker compose down                           # stop (volumes/bind mounts keep the data)
+services:
+  api:
+    build: {context: ., target: api}
+    environment:
+      OVASCOPE_PROCESSED_DIR: /app/data/bundle
+      OVASCOPE_ADMIN_KEY: ${OVASCOPE_ADMIN_KEY:-}
+      TF_CPP_MIN_LOG_LEVEL: "2"
+    volumes:
+      - ./models:/app/models            # model versions + active pointer (persistent)
+      - ./db:/app/db                    # SQLite database (uploads, jobs, request log)
+      - ./data/uploads:/app/data/uploads
+      - ./data/bundle:/app/data/bundle  # validation set + replay sample (from export_artifacts.py)
+      - ./artifacts:/app/artifacts      # logs, metrics
+    expose: ["8000"]
+    deploy:
+      resources:
+        limits: {cpus: "${API_CPUS:-2}", memory: 3g}
+    restart: unless-stopped
+
+  gateway:
+    image: nginx:1.27-alpine
+    volumes: [./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro]
+    ports: ["8000:80"]
+    depends_on: [api]
+    restart: unless-stopped
+
+  ui:
+    build: {context: ., target: ui}
+    environment:
+      OVASCOPE_API_URL: http://gateway
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+      - ./data/bundle:/app/data/processed:ro   # class_map.json fallback
+    ports: ["8501:8501"]
+    depends_on: [gateway]
+    restart: unless-stopped

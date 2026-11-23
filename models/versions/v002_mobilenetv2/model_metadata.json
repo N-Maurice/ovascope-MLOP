@@ -1,0 +1,91 @@
+{
+  "version": "v002_mobilenetv2",
+  "kind": "mobilenetv2",
+  "architecture": "ovascope_mobilenetv2",
+  "parent_version": null,
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "input_range": "[0, 255] RGB (model rescales internally)",
+  "num_classes": 11,
+  "created_at": "2026-11-23T11:49:24+00:00",
+  "epochs_completed": 30,
+  "best_epoch": 28,
+  "final_learning_rate": 4.999999873689376e-06,
+  "final_train_loss": 0.13633842766284943,
+  "final_train_accuracy": 0.9528734683990479,
+  "best_val_loss": 0.2349778562784195,
+  "validation_metrics": {
+    "samples": 1652,
+    "accuracy": 0.9194915254237288,
+    "loss": 0.23497764766216278,
+    "balanced_accuracy": 0.9194862532610877,
+    "macro_precision": 0.922681767306593,
+    "macro_recall": 0.9194862532610877,
+    "macro_f1": 0.9200345936748903,
+    "weighted_precision": 0.9227374505803558,
+    "weighted_recall": 0.9194915254237288,
+    "weighted_f1": 0.9200656851163098
+  },
+  "parameters": {
+    "total": 2272075,
+    "trainable": 1853707,
+    "non_trainable": 418368
+  },
+  "files": {
+    "keras": "model.keras",
+    "h5": "model.h5"
+  },
+  "model_size_mb": 24.53,
+  "sha256": {
+    "model.keras": "7f33ce6dcf9958cea2865326cc9dc01d2ecbff2514ff052534b663e530d700d0",
+    "model.h5": "d6e25eb2377218a0da99b99e5fc321fcb1642c6a5025c4a85c19f0172c9f4db6"
+  },
+  "h5_export": {
+    "h5_reload_ok": true,
+    "max_abs_difference_vs_keras": 0.0
+  },
+  "environment": {
+    "date_utc": "2026-11-23T11:49:24+00:00",
+    "python": "3.12.16",
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "tensorflow": "2.21.0",
+    "keras": "3.15.1",
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "scikit_learn": "1.9.1",
+    "pillow": "13.0.0",
+    "cpu_count": 16,
+    "accelerator": "GPU",
+    "gpus": [
+      "Quadro RTX 3000"
+    ]
+  },
+  "training_seconds": 828.0,
+  "pretrained_weights": "imagenet",
+  "fine_tuning": {
+    "performed": true,
+    "unfrozen_from_layer": 100,
+    "trainable_backbone_layers": 36,
+    "head_val_macro_f1": 0.862889365084412,
+    "fine_tuned_val_macro_f1": 0.9200345936748903,
+    "head_val_accuracy": 0.862590799031477,
+    "fine_tuned_val_accuracy": 0.9194915254237288,
+    "kept": "fine_tune"
+  },
+  "test_metrics": {
+    "samples": 2228,
+    "accuracy": 0.8370736086175943,
+    "loss": 0.5153993964195251,
+    "balanced_accuracy": 0.8379648720375218,
+    "macro_precision": 0.8479041095880937,
+    "macro_recall": 0.8379648720375218,
+    "macro_f1": 0.836960517859551,
+    "weighted_precision": 0.8480210629874736,
+    "weighted_recall": 0.8370736086175943,
+    "weighted_f1": 0.8365987126608257,
+    "model_version": "v002_mobilenetv2"
+  }
+}

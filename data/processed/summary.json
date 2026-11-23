@@ -1,0 +1,47 @@
+{
+  "train": {
+    "00_ascaris_lumbricoides": 859,
+    "01_capillaria_philippinensis": 850,
+    "02_enterobius_vermicularis": 850,
+    "03_fasciolopsis_buski": 850,
+    "04_hookworm_egg": 859,
+    "05_hymenolepis_diminuta": 850,
+    "06_hymenolepis_nana": 851,
+    "07_opisthorchis_viverrini": 850,
+    "08_paragonimus_spp": 850,
+    "09_taenia_spp_egg": 860,
+    "10_trichuris_trichiura": 850
+  },
+  "val": {
+    "00_ascaris_lumbricoides": 150,
+    "01_capillaria_philippinensis": 150,
+    "02_enterobius_vermicularis": 150,
+    "03_fasciolopsis_buski": 150,
+    "04_hookworm_egg": 151,
+    "05_hymenolepis_diminuta": 150,
+    "06_hymenolepis_nana": 150,
+    "07_opisthorchis_viverrini": 150,
+    "08_paragonimus_spp": 150,
+    "09_taenia_spp_egg": 151,
+    "10_trichuris_trichiura": 150
+  },
+  "test": {
+    "00_ascaris_lumbricoides": 207,
+    "01_capillaria_philippinensis": 203,
+    "02_enterobius_vermicularis": 200,
+    "03_fasciolopsis_buski": 199,
+    "04_hookworm_egg": 204,
+    "05_hymenolepis_diminuta": 200,
+    "06_hymenolepis_nana": 202,
+    "07_opisthorchis_viverrini": 200,
+    "08_paragonimus_spp": 209,
+    "09_taenia_spp_egg": 204,
+    "10_trichuris_trichiura": 200
+  },
+  "missing_images": [],
+  "settings": {
+    "val_fraction": 0.15,
+    "margin": 0.1,
+    "seed": 42
+  }
+}

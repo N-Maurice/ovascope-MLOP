@@ -1,0 +1,12 @@
+data/
+models/
+db/
+artifacts/
+load_testing/results/
+notebook/
+reports/
+tests/
+**/__pycache__
+.git
+.env
+*.zip

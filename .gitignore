@@ -1,0 +1,32 @@
+# --- Data (large; rebuild with scripts/prepare_data.py or the notebook) ---
+data/raw/
+data/extracted/
+data/processed/crops/
+data/bundle/
+data/uploads/
+data/*.zip
+
+# --- Runtime state ---
+db/
+models/checkpoints/
+artifacts/logs/
+artifacts/exports/
+artifacts/metrics/*_probabilities.npy
+# duplicate of crop_image_stats.csv written by the notebook
+artifacts/metrics/crop_image_stats_notebook.csv
+
+# --- Model copies regenerated on activation (originals live in models/versions/) ---
+models/ovascope_best_model.keras
+models/ovascope_best_model.h5
+
+# --- Secrets ---
+.env
+
+# --- Python / tooling ---
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+
+push.sh

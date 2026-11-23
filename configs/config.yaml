@@ -1,0 +1,62 @@
+# OvaScope central configuration.
+# All paths are relative to the project root unless absolute.
+# Values here are starting settings, not scientifically optimal choices.
+
+project:
+  name: OvaScope MLOps
+  random_seed: 42
+
+paths:
+  raw_dir: data/raw                         # Zenodo downloads (zips + test_labels_200.json)
+  extracted_dir: data/extracted             # unzipped archives
+  processed_dir: data/processed             # crops/, class_map.json, manifest.csv
+  uploads_dir: data/uploads                 # filesystem copy of uploaded images
+  models_dir: models                        # active model + versions/
+  artifacts_dir: artifacts                  # metrics/, plots/, logs/, exports/
+  database: db/ovascope.db                  # SQLite database
+
+dataset:
+  zenodo_record: "15866298"
+  # Official archives and their Zenodo MD5 checksums (used to verify downloads).
+  archives:
+    Chula-ParasiteEgg-11.zip: 1621521969547b0291c0cfbf7e450074
+    Chula-ParasiteEgg-11_test.zip: a47fdab77ced45bc40b0e8b1e6ff8d22
+    test_labels_200.json: 4ea3e8dec6b8e8dc269441dd5e3cde11
+  # Locations inside data/extracted after unzipping.
+  train_json: Chula-ParasiteEgg-11/Chula-ParasiteEgg-11/labels.json
+  train_images: Chula-ParasiteEgg-11/Chula-ParasiteEgg-11/data
+  test_images: test/data
+  test_json_in_raw: test_labels_200.json
+  crop_margin: 0.10        # context added on each side of a box (fraction of box size)
+  val_fraction: 0.15       # share of the official training images used for validation
+
+training:
+  image_size: 224
+  batch_size: 32
+  early_stopping_patience: 5
+  reduce_lr_patience: 2
+  baseline:
+    epochs: 30
+    learning_rate: 0.001
+  transfer:
+    backbone: mobilenetv2
+    head_epochs: 15
+    head_learning_rate: 0.001
+    fine_tune_epochs: 15
+    fine_tune_learning_rate: 0.00001
+    fine_tune_from_layer: 100    # MobileNetV2 has 154 layers; layers >= 100 are unfrozen
+    dropout: 0.3
+
+retraining:
+  trigger_threshold: 50          # validated new images at which retraining is flagged "recommended"
+  min_new_images: 5              # refuse to retrain with fewer validated images
+  epochs: 3
+  learning_rate: 0.00001
+  replay_images_per_class: 100   # historical training crops mixed in to limit forgetting
+  new_image_repeat: 3            # each new image is seen this many times per epoch
+  promotion_tolerance: 0.005     # candidate macro-F1 may be at most this much below the active model
+  auto_start: false              # true: start a job automatically when the threshold is reached
+
+api:
+  max_upload_mb: 10
+  allowed_extensions: [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"]

@@ -1,0 +1,316 @@
+{
+  "categories_train_json": [
+    [
+      0,
+      "Ascaris lumbricoides"
+    ],
+    [
+      1,
+      "Capillaria philippinensis"
+    ],
+    [
+      2,
+      "Enterobius vermicularis"
+    ],
+    [
+      3,
+      "Fasciolopsis buski"
+    ],
+    [
+      4,
+      "Hookworm egg"
+    ],
+    [
+      5,
+      "Hymenolepis diminuta"
+    ],
+    [
+      6,
+      "Hymenolepis nana"
+    ],
+    [
+      7,
+      "Opisthorchis viverrine"
+    ],
+    [
+      8,
+      "Paragonimus spp"
+    ],
+    [
+      9,
+      "Taenia spp. egg"
+    ],
+    [
+      10,
+      "Trichuris trichiura"
+    ]
+  ],
+  "categories_identical_train_test": true,
+  "class_map_matches_annotations": true,
+  "train_source": {
+    "images_in_json": 11000,
+    "image_files_on_disk": 11000,
+    "json_images_missing_on_disk": [],
+    "files_without_annotation_entry": [],
+    "annotations": 11031,
+    "images_by_egg_count": {
+      "1": 10971,
+      "2": 27,
+      "3": 2
+    },
+    "images_with_mixed_classes": [],
+    "annotations_per_class": {
+      "0": 1009,
+      "1": 1000,
+      "2": 1000,
+      "3": 1000,
+      "4": 1010,
+      "5": 1000,
+      "6": 1001,
+      "7": 1000,
+      "8": 1000,
+      "9": 1011,
+      "10": 1000
+    },
+    "boxes_outside_image": [
+      1102,
+      1114,
+      1136,
+      1140,
+      1156,
+      1213,
+      1534,
+      1645,
+      1673,
+      1717,
+      1825,
+      1882,
+      2053,
+      2099,
+      2115,
+      2151,
+      2231,
+      3463,
+      4953,
+      5665,
+      6127,
+      6631,
+      6663,
+      6796,
+      7018,
+      7019,
+      7025,
+      7027,
+      7033,
+      7037,
+      7051,
+      7055,
+      7057,
+      7059,
+      7061,
+      7071,
+      7073,
+      7074,
+      7077,
+      7078,
+      7079,
+      7087,
+      7089,
+      7091,
+      7099,
+      7106,
+      7109,
+      7113,
+      7123,
+      7125,
+      7133,
+      7138,
+      7139,
+      7141,
+      7149,
+      7151,
+      7165,
+      7397,
+      7421,
+      7433,
+      7445,
+      7457,
+      7469,
+      7632,
+      7639,
+      7644,
+      7647,
+      7653,
+      7654,
+      7661,
+      7663,
+      7664,
+      7671,
+      7672,
+      7675,
+      7679,
+      7686,
+      7688,
+      7691,
+      7696,
+      7698,
+      7702,
+      7707,
+      7715,
+      7716,
+      7728,
+      7835,
+      7847,
+      7883,
+      7942,
+      7949,
+      8022,
+      8153,
+      8154,
+      9660,
+      9672,
+      10100,
+      10161,
+      10366,
+      10648,
+      10660
+    ]
+  },
+  "test_source": {
+    "images_in_json": 2200,
+    "image_files_on_disk": 2200,
+    "json_images_missing_on_disk": [],
+    "files_without_annotation_entry": [],
+    "annotations": 2228,
+    "images_by_egg_count": {
+      "1": 2172,
+      "2": 28
+    },
+    "images_with_mixed_classes": [],
+    "annotations_per_class": {
+      "0": 207,
+      "1": 203,
+      "2": 200,
+      "3": 199,
+      "4": 204,
+      "5": 200,
+      "6": 202,
+      "7": 200,
+      "8": 209,
+      "9": 204,
+      "10": 200
+    },
+    "boxes_outside_image": [
+      1533,
+      1723,
+      1729,
+      1732,
+      1734,
+      1735,
+      1736,
+      1738,
+      1741,
+      1744,
+      1747,
+      1750,
+      1755,
+      1760,
+      1763,
+      1764,
+      1766,
+      1947
+    ]
+  },
+  "train_filename_vs_label_mismatches": [],
+  "source_images_in_multiple_splits": [],
+  "source_image_sizes": {
+    "3024x4032": 2226,
+    "1280x960": 1662,
+    "1920x1080": 1649,
+    "3024x2822": 1122,
+    "2448x3264": 1082,
+    "2117x4032": 1074,
+    "1344x1080": 845,
+    "896x960": 835,
+    "1280x672": 824,
+    "1920x756": 795,
+    "1714x3264": 558,
+    "2448x2285": 527,
+    "1546x505": 1
+  },
+  "exact_duplicate_source_groups": [],
+  "exact_duplicates_across_splits": [],
+  "near_duplicate_threshold_bits": 20,
+  "near_duplicate_positive_control_distance": 14,
+  "test_to_trainval_closest_distance": {
+    "min": 70,
+    "p5": 86.0,
+    "median": 93.0
+  },
+  "near_duplicate_pairs_across_splits": {
+    "train-val": 0,
+    "train-test": 0,
+    "val-test": 0
+  },
+  "near_duplicate_examples": {
+    "train-val": [],
+    "train-test": [],
+    "val-test": []
+  },
+  "crops_total": 13259,
+  "crops_per_split": {
+    "test": 2228,
+    "train": 9379,
+    "val": 1652
+  },
+  "crops_per_split_class": {
+    "train": {
+      "0": 859,
+      "1": 850,
+      "2": 850,
+      "3": 850,
+      "4": 859,
+      "5": 850,
+      "6": 851,
+      "7": 850,
+      "8": 850,
+      "9": 860,
+      "10": 850
+    },
+    "val": {
+      "0": 150,
+      "1": 150,
+      "2": 150,
+      "3": 150,
+      "4": 151,
+      "5": 150,
+      "6": 150,
+      "7": 150,
+      "8": 150,
+      "9": 151,
+      "10": 150
+    },
+    "test": {
+      "0": 207,
+      "1": 203,
+      "2": 200,
+      "3": 199,
+      "4": 204,
+      "5": 200,
+      "6": 202,
+      "7": 200,
+      "8": 209,
+      "9": 204,
+      "10": 200
+    }
+  },
+  "exact_duplicate_crops_across_splits": 0,
+  "crop_side_px": {
+    "min": 72,
+    "median": 265,
+    "max": 967,
+    "share_below_224": 0.34150388415415944
+  },
+  "non_square_crops": 0,
+  "empty_or_flat_crops": 0
+}

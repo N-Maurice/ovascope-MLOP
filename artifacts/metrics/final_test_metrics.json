@@ -1,0 +1,253 @@
+{
+  "samples": 2228,
+  "accuracy": 0.8370736086175943,
+  "loss": 0.5153993964195251,
+  "balanced_accuracy": 0.8379648720375218,
+  "macro_precision": 0.8479041095880937,
+  "macro_recall": 0.8379648720375218,
+  "macro_f1": 0.836960517859551,
+  "weighted_precision": 0.8480210629874736,
+  "weighted_recall": 0.8370736086175943,
+  "weighted_f1": 0.8365987126608257,
+  "per_class": {
+    "Ascaris lumbricoides": {
+      "precision": 0.7311320754716981,
+      "recall": 0.748792270531401,
+      "f1": 0.7398568019093079,
+      "support": 207
+    },
+    "Capillaria philippinensis": {
+      "precision": 0.7595628415300546,
+      "recall": 0.6847290640394089,
+      "f1": 0.7202072538860104,
+      "support": 203
+    },
+    "Enterobius vermicularis": {
+      "precision": 0.7800829875518672,
+      "recall": 0.94,
+      "f1": 0.8526077097505669,
+      "support": 200
+    },
+    "Fasciolopsis buski": {
+      "precision": 0.8296943231441049,
+      "recall": 0.9547738693467337,
+      "f1": 0.8878504672897196,
+      "support": 199
+    },
+    "Hookworm egg": {
+      "precision": 0.956989247311828,
+      "recall": 0.8725490196078431,
+      "f1": 0.9128205128205128,
+      "support": 204
+    },
+    "Hymenolepis diminuta": {
+      "precision": 0.7014388489208633,
+      "recall": 0.975,
+      "f1": 0.8158995815899581,
+      "support": 200
+    },
+    "Hymenolepis nana": {
+      "precision": 0.8488372093023255,
+      "recall": 0.7227722772277227,
+      "f1": 0.7807486631016043,
+      "support": 202
+    },
+    "Opisthorchis viverrini": {
+      "precision": 0.8571428571428571,
+      "recall": 0.87,
+      "f1": 0.8635235732009926,
+      "support": 200
+    },
+    "Paragonimus spp.": {
+      "precision": 0.8922155688622755,
+      "recall": 0.7129186602870813,
+      "f1": 0.7925531914893617,
+      "support": 209
+    },
+    "Taenia spp. egg": {
+      "precision": 0.9698492462311558,
+      "recall": 0.946078431372549,
+      "f1": 0.9578163771712159,
+      "support": 204
+    },
+    "Trichuris trichiura": {
+      "precision": 1.0,
+      "recall": 0.79,
+      "f1": 0.88268156424581,
+      "support": 200
+    }
+  },
+  "confusion_matrix": [
+    [
+      155,
+      1,
+      0,
+      6,
+      1,
+      34,
+      4,
+      1,
+      4,
+      1,
+      0
+    ],
+    [
+      8,
+      139,
+      24,
+      2,
+      2,
+      0,
+      8,
+      16,
+      4,
+      0,
+      0
+    ],
+    [
+      0,
+      2,
+      188,
+      1,
+      0,
+      6,
+      2,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      2,
+      0,
+      5,
+      190,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      4,
+      9,
+      4,
+      2,
+      178,
+      2,
+      1,
+      0,
+      3,
+      1,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      195,
+      1,
+      0,
+      0,
+      3,
+      0
+    ],
+    [
+      6,
+      4,
+      10,
+      0,
+      0,
+      30,
+      146,
+      5,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      16,
+      2,
+      0,
+      0,
+      0,
+      8,
+      174,
+      0,
+      0,
+      0
+    ],
+    [
+      25,
+      0,
+      1,
+      27,
+      4,
+      3,
+      0,
+      0,
+      149,
+      0,
+      0
+    ],
+    [
+      5,
+      0,
+      0,
+      0,
+      0,
+      4,
+      2,
+      0,
+      0,
+      193,
+      0
+    ],
+    [
+      6,
+      12,
+      7,
+      1,
+      1,
+      3,
+      0,
+      6,
+      6,
+      0,
+      158
+    ]
+  ],
+  "top_confusions": [
+    {
+      "true": "Ascaris lumbricoides",
+      "predicted": "Hymenolepis diminuta",
+      "count": 34
+    },
+    {
+      "true": "Hymenolepis nana",
+      "predicted": "Hymenolepis diminuta",
+      "count": 30
+    },
+    {
+      "true": "Paragonimus spp.",
+      "predicted": "Fasciolopsis buski",
+      "count": 27
+    },
+    {
+      "true": "Paragonimus spp.",
+      "predicted": "Ascaris lumbricoides",
+      "count": 25
+    },
+    {
+      "true": "Capillaria philippinensis",
+      "predicted": "Enterobius vermicularis",
+      "count": 24
+    }
+  ],
+  "model_version": "v002_mobilenetv2"
+}

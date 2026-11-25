@@ -62,7 +62,8 @@ vary with magnification.
                                                                     ▼                        │ activate
                                               notebook/ovascope_ml_pipeline.ipynb      models/active_model.json
                                                                                               │
-  Browser ─► Streamlit (app/) ─HTTP─► nginx ─► FastAPI × N (api/) ─► src/prediction.py ◄──────┘
+  Browser ─► React app (web/) ─/api─► nginx ─► FastAPI × N (api/) ─► src/prediction.py ◄──────┘
+            (or Streamlit, app/)              │   ├─ egg gate (src/gate.py) refuses non-egg images
                                                    │   ├─ /upload ─► src/database.py (SQLite: image BLOBs)
                                                    │   └─ /retrain ─► src/retrain.py (separate process):
                                                    │        load active model → new + replay images → fit →
@@ -86,7 +87,12 @@ vary with magnification.
 | `src/monitoring.py` | request log, latency statistics, uptime |
 | `src/registry.py` | model versions, active pointer, rollback |
 | `api/main.py` | FastAPI service |
-| `app/streamlit_app.py` | web interface (6 pages) |
+| `src/gate.py` | egg gate: refuses images that are not parasite eggs |
+| `src/results.py` | read-only access to saved evaluation results for the web interface |
+| `src/users.py` | accounts: password hashing, sessions, roles; CLI `python -m src.users` |
+| `scripts/setup.sh`, `scripts/dev.sh`, `scripts/install_system_tools.sh`, `Makefile` | setup and run helpers |
+| `web/` | React + TypeScript web interface (main UI, see `web/README.md`) |
+| `app/streamlit_app.py` | lightweight Streamlit interface (6 pages) |
 | `notebook/ovascope_ml_pipeline.ipynb` | full documented ML lifecycle with real outputs |
 | `scripts/` | `prepare_data.py`, `audit_dataset.py`, `evaluate_final.py`, `evaluate_deployed.py`, `export_artifacts.py` |
 | `tests/` | pytest suite (preprocessing, prediction, API, retraining) on a synthetic mini-dataset |
@@ -97,6 +103,25 @@ vary with magnification.
 | `docs/` | deployment guide, demo checklist |
 
 ## 5. Installation
+
+**What you need**
+
+| Tool | Version | Used for | Install |
+|---|---|---|---|
+| Python | 3.12 | training, API, tests | Miniconda, or `apt install python3.12` |
+| Node.js + npm | 20 or newer | web interface (`web/`) | `sudo bash scripts/install_system_tools.sh` |
+| Docker + Compose | any recent | containers (optional) | `sudo bash scripts/install_system_tools.sh` |
+| make | any | shortcuts (optional) | `sudo bash scripts/install_system_tools.sh` |
+
+`scripts/install_system_tools.sh` installs Docker, Compose, make and (if missing) Node.js from Ubuntu's own
+packages and adds you to the `docker` group (log out and in afterwards).
+
+**Quick setup** (after creating the Python environment below):
+```bash
+bash scripts/setup.sh      # checks tools, installs Python + web packages, creates .env and the database
+bash scripts/dev.sh        # API on :8000 + web app on http://localhost:5173   (or: make dev)
+```
+Open the web app and choose **Sign in → Create account**: the first account becomes the administrator.
 
 Python 3.12 is required (TensorFlow 2.21 has no build for Python 3.13+).
 
@@ -201,7 +226,7 @@ or `curl -F file=@egg.jpg http://localhost:8000/predict`.
 | `/health` | GET | service status, uptime since process start, model loaded/version, serving container |
 | `/predict` | POST | classify one uploaded image (multipart field `file`) |
 | `/upload` | POST 🔒 | upload labelled images (`files`, plus `label` or `labels`, or a class-folder ZIP) |
-| `/uploads` | GET | stored records and counts |
+| `/uploads`, `/uploads/{id}/image` | GET 🔒 | stored records and counts; one stored image |
 | `/retrain` | POST 🔒 | start a retraining job (HTTP 202 + job id; 409 if not possible) |
 | `/retrain/status` | GET | readiness, pending images, trigger flag, latest job |
 | `/retrain/status/{job_id}` | GET | job status, progress, metrics, promotion decision |
@@ -209,12 +234,42 @@ or `curl -F file=@egg.jpg http://localhost:8000/predict`.
 | `/model/versions` | GET | all versions and their metrics |
 | `/model/activate/{version}`, `/model/rollback` | POST 🔒 | switch the active model |
 | `/metrics` | GET | request counts, failures, latency, recent activity, retraining events |
+| `/classes`, `/classes/{id}/examples/{n}` | GET | class list; validation example crops (test crops are never served) |
+| `/results/evaluation` | GET | final test + validation metrics, confusion matrices, model comparison, accuracy by camera |
+| `/results/history/{version}` | GET | per-epoch training history of a version |
+| `/dataset/summary` | GET | dataset audit: splits, class balance, leakage checks, crop sizes |
+| `/gate` | GET | egg-gate threshold and results |
+| `/auth/register`, `/auth/login` | POST | create an account; sign in with username **or** email + password → session token |
+| `/auth/me`, `/auth/logout`, `/auth/password` | GET, POST, POST | current account; end the session; change password (signed in) |
+| `/auth/status`, `/auth/verify` | GET, POST 🔒 | sign-up/first-admin state; check admin credentials |
+| `/users`, `/users/{id}` | GET, PATCH, DELETE 🔒 | list accounts; change role (admin/user) or active flag; delete |
 
-🔒 requires header `X-API-Key` when `OVASCOPE_ADMIN_KEY` is set (always set it on a public server).
+🔒 requires an **administrator**: either `Authorization: Bearer <token>` from `/auth/login` of an account with the
+admin role, or the operator header `X-API-Key: <OVASCOPE_ADMIN_KEY>` (scripts, Streamlit, load tests).
+
+**Accounts.** Stored in the SQLite database (`users`, `sessions`); passwords as salted scrypt hashes, sessions as
+SHA-256 hashes of random tokens (7 days, or 1 day without "keep me signed in"). The **first account becomes admin**;
+later sign-ups are `user` until an admin promotes them (admin console → Users). The last active admin cannot be
+demoted, deactivated or deleted. Five failed sign-ins for the same name block that name for five minutes.
+Settings: `auth:` in `configs/config.yaml` (`allow_signup`, `session_days`, `min_password_length`).
+Command line: `python -m src.users create-admin --username NAME --email MAIL`, `reset-password --login NAME`, `list`.
+Uploads and retraining jobs record which account made them (`uploaded_by`, `requested_by`).
+Only on a fresh install with **no** accounts and **no** `OVASCOPE_ADMIN_KEY` are admin endpoints open (development).
 The model is loaded once and swapped atomically when the active version changes. Retraining never runs inside a request.
 
-## 13. Streamlit application
+## 13. Web interface (React) and Streamlit application
 
+**React app (`web/`, main interface).** Works on laptop and phone screens, light and dark mode.
+```bash
+OVASCOPE_ADMIN_KEY=choose-a-key uvicorn api.main:app --port 8000     # terminal 1
+cd web && npm install && npm run dev                                 # terminal 2 -> http://localhost:5173
+```
+Pages: Home, Classify (crop one egg, top-3, egg check, reference and look-alike crops), Classes, Dataset,
+Performance (metrics, confusion matrix, per-class table, training curves, egg check), Status (live monitoring),
+About, and an admin console behind sign-in (upload, database records, retraining with live progress,
+model activation and rollback). Details: `web/README.md`.
+
+**Streamlit (lightweight alternative):**
 `OVASCOPE_API_URL=http://localhost:8000 streamlit run app/streamlit_app.py`
 
 The app has six pages:
@@ -230,7 +285,7 @@ The app has six pages:
 ```bash
 python scripts/export_artifacts.py               # builds data/bundle (validation set + replay sample)
 cp .env.example .env                             # set OVASCOPE_ADMIN_KEY
-docker compose up -d --build                     # gateway :8000, UI :8501, 1 API container
+docker compose up -d --build                     # web app :8080, gateway :8000, Streamlit :8501, 1 API
 docker compose up -d --scale api=3               # 3 API containers behind nginx
 curl localhost:8000/health                       # "instance" = container that answered
 docker compose logs -f api                       # logs

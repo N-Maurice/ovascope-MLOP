@@ -31,6 +31,7 @@ dataset:
   val_fraction: 0.15       # share of the official training images used for validation
 
 training:
+  epoch_metrics: true     # accuracy, precision, recall, F1, ROC-AUC, PR-AUC, log loss on train + val after every epoch
   image_size: 224
   batch_size: 32
   early_stopping_patience: 5

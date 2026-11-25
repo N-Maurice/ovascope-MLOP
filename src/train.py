@@ -99,6 +99,42 @@ def load_train_val(cfg: dict):
 # Training loop
 # ---------------------------------------------------------------------------
 
+class EpochMetrics(tf.keras.callbacks.Callback):
+    """At the end of every epoch, measure the seven headline metrics on the full training set
+    (without augmentation) and on the validation set, and add them to the epoch logs.
+
+    Columns added: train_/val_ + accuracy, precision, recall, f1, roc_auc, pr_auc, log_loss
+    (precision/recall/F1 are macro averages; ROC-AUC and PR-AUC are one-vs-rest macro averages).
+    They are written to the CSV log and the training history together with Keras' own
+    `accuracy`/`loss` (running averages over the *augmented* batches) and `val_accuracy`/`val_loss`.
+    Must be placed before CSVLogger/EarlyStopping in the callback list so they see the new values.
+    """
+
+    KEYS = {"accuracy": "accuracy", "precision": "macro_precision", "recall": "macro_recall", "f1": "macro_f1",
+            "roc_auc": "roc_auc_macro", "pr_auc": "pr_auc_macro", "log_loss": "log_loss"}
+
+    def __init__(self, splits: dict, class_names: list[str], image_size: int, batch_size: int):
+        """splits: {"train": (file_paths, labels), "val": (file_paths, labels)}"""
+        super().__init__()
+        self.datasets = {name: (make_dataset(files, labels, image_size, batch_size, training=False)
+                                .map(lambda x, y: x), np.asarray(labels))
+                         for name, (files, labels) in splits.items()}
+        self.class_names = class_names
+
+    def on_epoch_end(self, epoch, logs=None):
+        if logs is None:
+            return
+        parts = []
+        for name, (images, labels) in self.datasets.items():
+            probabilities = self.model.predict(images, verbose=0)
+            metrics = compute_metrics(labels, probabilities, self.class_names)
+            for short, key in self.KEYS.items():
+                logs[f"{name}_{short}"] = float("nan") if metrics[key] is None else metrics[key]
+            parts.append(f"{name}: f1={metrics['macro_f1']:.4f} roc_auc={metrics['roc_auc_macro'] or float('nan'):.4f} "
+                         f"pr_auc={metrics['pr_auc_macro'] or float('nan'):.4f} log_loss={metrics['log_loss']:.4f}")
+        print(f"  epoch {epoch + 1} metrics | " + " | ".join(parts))
+
+
 def compile_model(model, learning_rate: float) -> None:
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate),
                   loss=tf.keras.losses.SparseCategoricalCrossentropy(),
@@ -106,9 +142,11 @@ def compile_model(model, learning_rate: float) -> None:
 
 
 def fit(model, train_ds, val_ds, epochs: int, learning_rate: float, run_dir: Path, cfg: dict,
-        phase: str = "train") -> tuple[pd.DataFrame, float]:
+        phase: str = "train", epoch_metrics: EpochMetrics | None = None) -> tuple[pd.DataFrame, float]:
     """Compile + fit with the standard callbacks. Returns (history, seconds).
 
+    * EpochMetrics (optional) adds accuracy, precision, recall, F1, ROC-AUC, PR-AUC and log loss
+      on the training and validation sets to every epoch's history.
     * ModelCheckpoint keeps the epoch with the lowest validation loss.
     * EarlyStopping stops after `patience` epochs without improvement and restores the best weights.
     * ReduceLROnPlateau halves the learning rate when validation loss stalls.
@@ -118,7 +156,8 @@ def fit(model, train_ds, val_ds, epochs: int, learning_rate: float, run_dir: Pat
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     compile_model(model, learning_rate)
-    callbacks = [
+    callbacks = [epoch_metrics] if epoch_metrics is not None else []
+    callbacks += [
         tf.keras.callbacks.ModelCheckpoint(str(run_dir / f"best_{phase}.keras"), monitor="val_loss",
                                            save_best_only=True),
         tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=t["early_stopping_patience"],
@@ -133,6 +172,10 @@ def fit(model, train_ds, val_ds, epochs: int, learning_rate: float, run_dir: Pat
     seconds = time.time() - start
     frame = pd.DataFrame(history.history)
     frame.insert(0, "epoch", np.arange(1, len(frame) + 1))
+    if "train_log_loss" in frame:   # put the per-epoch metric columns in a readable order
+        ordered = ["epoch", "loss", "accuracy"] + [f"{s}_{m}" for s in ("train", "val") for m in EpochMetrics.KEYS]
+        ordered = [c for c in ordered if c in frame] + [c for c in frame if c not in ordered]
+        frame = frame[ordered]
     frame["phase"] = phase
     if "learning_rate" not in frame:
         frame["learning_rate"] = float(model.optimizer.learning_rate.numpy())
@@ -227,15 +270,27 @@ def update_metadata(cfg: dict, version: str, **fields) -> dict:
 # Training recipes
 # ---------------------------------------------------------------------------
 
+def make_epoch_metrics(cfg: dict, class_names) -> EpochMetrics | None:
+    """The per-epoch metrics callback (full training set without augmentation + validation set),
+    unless disabled with training.epoch_metrics: false."""
+    t = cfg["training"]
+    if not t.get("epoch_metrics", True):
+        return None
+    processed = cfg["paths"]["processed_dir"]
+    splits = {"train": list_split(processed, "train"), "val": list_split(processed, "val")}
+    return EpochMetrics(splits, class_names, t["image_size"], t["batch_size"])
+
+
 def train_baseline(cfg: dict, epochs: int | None = None) -> str:
     t = cfg["training"]
     set_seeds(cfg["project"]["random_seed"])
     class_names = class_names_from(cfg)
     train_ds, val_ds = load_train_val(cfg)
+    tracker = make_epoch_metrics(cfg, class_names)
     model = build_baseline_cnn(t["image_size"], len(class_names))
     run_dir = cfg["paths"]["models_dir"] / "checkpoints" / "baseline_cnn"
     history, seconds = fit(model, train_ds, val_ds, epochs or t["baseline"]["epochs"],
-                           t["baseline"]["learning_rate"], run_dir, cfg, phase="baseline")
+                           t["baseline"]["learning_rate"], run_dir, cfg, phase="baseline", epoch_metrics=tracker)
     val_metrics = validation_metrics(model, val_ds, class_names)
     print(f"Baseline CNN validation: accuracy={val_metrics['accuracy']:.4f} macro_f1={val_metrics['macro_f1']:.4f}")
     return save_version(model, "baseline_cnn", cfg, history, val_metrics,
@@ -250,11 +305,13 @@ def train_transfer(cfg: dict, head_epochs: int | None = None, fine_tune_epochs: 
     set_seeds(cfg["project"]["random_seed"])
     class_names = class_names_from(cfg)
     train_ds, val_ds = load_train_val(cfg)
+    tracker = make_epoch_metrics(cfg, class_names)
     model = build_transfer_model(t["image_size"], len(class_names), dropout=tt["dropout"], weights=weights)
     run_dir = cfg["paths"]["models_dir"] / "checkpoints" / "mobilenetv2"
 
     head_history, head_seconds = fit(model, train_ds, val_ds, head_epochs or tt["head_epochs"],
-                                     tt["head_learning_rate"], run_dir, cfg, phase="head")
+                                     tt["head_learning_rate"], run_dir, cfg, phase="head",
+                                     epoch_metrics=tracker)
     head_metrics = validation_metrics(model, val_ds, class_names)
     head_weights = model.get_weights()
     print(f"Head-only validation: accuracy={head_metrics['accuracy']:.4f} macro_f1={head_metrics['macro_f1']:.4f}")
@@ -265,7 +322,7 @@ def train_transfer(cfg: dict, head_epochs: int | None = None, fine_tune_epochs: 
     if epochs > 0:
         trainable_layers = unfreeze_top_of_backbone(model, tt["fine_tune_from_layer"])
         ft_history, ft_seconds = fit(model, train_ds, val_ds, epochs, tt["fine_tune_learning_rate"],
-                                     run_dir, cfg, phase="fine_tune")
+                                     run_dir, cfg, phase="fine_tune", epoch_metrics=tracker)
         ft_metrics = validation_metrics(model, val_ds, class_names)
         print(f"Fine-tuned validation: accuracy={ft_metrics['accuracy']:.4f} macro_f1={ft_metrics['macro_f1']:.4f}")
         kept = "fine_tune" if ft_metrics["macro_f1"] >= head_metrics["macro_f1"] else "head"

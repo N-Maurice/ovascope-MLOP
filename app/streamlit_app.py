@@ -118,6 +118,12 @@ def page_predict():
         except requests.RequestException as error:
             right.error(f"API unreachable: {error}")
             return
+        if response.status_code == 422:   # the egg gate rejected the image
+            detail = response.json().get("detail", {})
+            right.warning(f"**Not a parasite egg image.** {detail.get('message', '')}")
+            right.caption(f"Egg score {detail.get('egg_score', 0):.3f} (needs ≥ {detail.get('threshold', 0):.3f}). "
+                          "Tip: use a microscope photo and crop tightly around one egg.")
+            return
         if not response.ok:
             with right:
                 show_error(response)
@@ -131,6 +137,9 @@ def page_predict():
             y=alt.Y("class_name:N", sort="-x", title=None)).properties(height=140), use_container_width=True)
         right.caption(f"Model version: `{result['model_version']}` · class id {result['predicted_class_id']} · "
                       f"official label “{result['original_label']}”")
+        check = result.get("input_check", {})
+        if check.get("enabled"):
+            right.caption(f"Input check passed · egg score {check['egg_score']:.3f} (threshold {check['threshold']:.3f})")
         right.info(result["note"])
 
 

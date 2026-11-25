@@ -14,6 +14,7 @@ paths:
   models_dir: models                        # active model + versions/
   artifacts_dir: artifacts                  # metrics/, plots/, logs/, exports/
   database: db/ovascope.db                  # SQLite database
+  gate_data_dir: data/gate                  # non-egg images for the input check (egg gate)
 
 dataset:
   zenodo_record: "15866298"
@@ -57,6 +58,21 @@ retraining:
   new_image_repeat: 3            # each new image is seen this many times per epoch
   promotion_tolerance: 0.005     # candidate macro-F1 may be at most this much below the active model
   auto_start: false              # true: start a job automatically when the threshold is reached
+
+egg_gate:                        # input check: reject images that are not parasite-egg crops (src/gate.py)
+  enabled: true                  # false = classify every image without the check
+  epochs: 8
+  learning_rate: 0.001
+  dropout: 0.2
+  target_egg_recall: 0.995       # threshold keeps >= 99.5 % of real validation egg crops
+  max_threshold: 0.5
+  imagenette_url: https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz
+  imagenette: {train: 4000, val: 1000, test: 1000}
+  cifar100_url: https://cave.cs.toronto.edu/kriz/cifar-100-python.tar.gz
+  cifar100_md5: eb9058c3a382ffc7106e4002c42a8d85   # published checksum of the python version
+  cifar100_per_superclass: {train: 150, val: 25, test: 25}     # x 20 superclasses
+  background_patches: {train: 3000, val: 500, test: 500}       # empty microscope background
+  synthetic: {train: 300, val: 50, test: 50}                    # blank / gradient / noise images
 
 api:
   max_upload_mb: 10

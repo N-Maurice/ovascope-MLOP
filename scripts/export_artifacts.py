@@ -54,6 +54,9 @@ def build_results_zip(cfg) -> Path:
         "per_class_metrics.csv": metrics / "per_class_metrics_final_model.csv",
         "validation_metrics.json": metrics / f"{active}_val_metrics.json",
         "dataset_audit.json": metrics / "dataset_audit.json",
+        "egg_gate.keras": models_dir / "gate" / "egg_gate.keras",
+        "egg_gate_metadata.json": models_dir / "gate" / "gate_metadata.json",
+        "egg_gate_scores.png": plots / "gate_score_distribution.png",
     }
     out = artifacts / "exports" / "ovascope_training_results.zip"
     out.parent.mkdir(parents=True, exist_ok=True)

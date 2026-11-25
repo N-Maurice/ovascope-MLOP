@@ -4,6 +4,7 @@ Run locally:   uvicorn api.main:app --host 0.0.0.0 --port 8000
 Docs:          http://localhost:8000/docs
 
 Public endpoints:     GET /health, POST /predict, GET /model/info, GET /metrics, GET /classes
+                      (/predict answers 422 "not_a_parasite_egg" when the egg gate rejects the image)
 Protected endpoints:  POST /upload, POST /retrain, POST /model/activate/{version}, POST /model/rollback
                       (send header  X-API-Key: <OVASCOPE_ADMIN_KEY>)
 """
@@ -24,7 +25,8 @@ from fastapi.responses import JSONResponse, Response
 
 from src import database, monitoring, registry, retrain
 from src.config import load_config
-from src.preprocessing import load_class_map
+from src.gate import GATE_FOLDER, GATE_METADATA_FILE, NotParasiteEggError
+from src.preprocessing import load_class_map, load_image_from_bytes
 
 CFG = load_config()
 DB = CFG["paths"]["database"]
@@ -36,7 +38,7 @@ INSTANCE = socket.gethostname()   # identifies the container that served a reque
 
 
 class ModelHolder:
-    """Keeps one Predictor in memory and swaps it when the active version changes.
+    """Keeps one Predictor in memory and swaps it when the active version (or the egg gate) changes.
 
     Loading happens outside the lock; only the reference swap is locked, so
     predictions keep being served by the old model while a new one loads.
@@ -50,7 +52,9 @@ class ModelHolder:
 
     def refresh(self) -> None:
         pointer = MODELS_DIR / "active_model.json"
-        mtime = pointer.stat().st_mtime if pointer.exists() else None
+        gate_meta = MODELS_DIR / GATE_FOLDER / GATE_METADATA_FILE
+        mtime = (pointer.stat().st_mtime if pointer.exists() else None,
+                 gate_meta.stat().st_mtime if gate_meta.exists() else None)
         if mtime == self._pointer_mtime and (self.predictor or self.error):
             return
         try:
@@ -124,9 +128,11 @@ def class_map():
 @app.get("/health")
 def health():
     predictor = MODEL.get()
+    gate = predictor.gate if predictor else None
     return {"status": "ok", "service_uptime_seconds": round(monitoring.uptime_seconds(), 1),
             "model_loaded": predictor is not None, "model_version": predictor.version if predictor else None,
-            "model_error": MODEL.error, "instance": INSTANCE}
+            "model_error": MODEL.error, "instance": INSTANCE,
+            "input_check": gate.info() if gate else {"enabled": False}}
 
 
 @app.get("/classes")
@@ -193,6 +199,10 @@ def predict(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail=f"File larger than {CFG['api']['max_upload_mb']} MB")
     try:
         result = predictor.predict_bytes(data)
+    except NotParasiteEggError as rejected:
+        # 422: the file is a valid image, but not of a parasite egg - ask for a proper image
+        raise HTTPException(status_code=422, detail={"error": "not_a_parasite_egg", "message": str(rejected),
+                                                     **rejected.check})
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
     request.state.prediction = result
@@ -207,6 +217,13 @@ def _store(filename: str, data: bytes, label, classes, protected) -> dict:
     checked = database.validate_upload(filename, data, label, classes, ALLOWED, MAX_BYTES, protected)
     if not checked["ok"]:
         return checked
+    predictor = MODEL.get()
+    if predictor is not None and predictor.gate is not None:   # keep non-egg images out of retraining data
+        verdict = predictor.gate.check(load_image_from_bytes(data))
+        if not verdict["is_parasite_egg"]:
+            return {"ok": False, "filename": checked["filename"],
+                    "reason": f"does not look like a parasite egg image (egg score {verdict['egg_score']:.3f} "
+                              f"< threshold {verdict['threshold']:.3f})"}
     folder = next(c["folder"] for c in classes if c["class_id"] == checked["class_id"])
     return database.save_upload(DB, checked, data, CFG["paths"]["uploads_dir"], folder)
 

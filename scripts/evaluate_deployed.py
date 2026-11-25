@@ -45,12 +45,15 @@ def main():
         rows = sample
 
     health = requests.get(f"{args.url}/health", timeout=10).json()
-    y_true, probabilities, latencies, versions = [], [], [], set()
+    y_true, probabilities, latencies, versions, gate_rejected = [], [], [], set(), []
     for row in rows:
         data = (processed / row["crop_path"]).read_bytes()
         start = time.perf_counter()
         response = requests.post(f"{args.url}/predict", files={"file": (Path(row["crop_path"]).name, data)}, timeout=60)
         latencies.append((time.perf_counter() - start) * 1000)
+        if response.status_code == 422:   # a real egg wrongly rejected by the input check (egg gate)
+            gate_rejected.append({"crop": row["crop_path"], **response.json()["detail"]})
+            continue
         response.raise_for_status()
         result = response.json()
         versions.add(result["model_version"])
@@ -62,16 +65,20 @@ def main():
         y_true.append(row["class_id"])
 
     metrics = compute_metrics(np.array(y_true), np.array(probabilities), class_names)
-    metrics.pop("loss")   # not meaningful from top-3 scores only
+    for key in ("loss", "log_loss"):   # not meaningful from top-3 scores only
+        metrics.pop(key, None)
     report = {"api_url": args.url, "model_versions": sorted(versions), "api_instance_at_start": health.get("instance"),
               "evaluation_samples": len(rows), "sampling": f"{args.per_class or 'all'} test crops per class, seed {args.seed}",
               "client_latency_ms": {"median": float(np.median(latencies)), "p95": float(np.percentile(latencies, 95))},
+              "rejected_by_input_check": len(gate_rejected), "rejected_examples": gate_rejected[:20],
+              "note": "classification metrics cover the crops that passed the input check",
               **metrics}
     out = cfg["paths"]["artifacts_dir"] / "metrics" / "production_evaluation.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2))
     print(json.dumps({k: report[k] for k in ("model_versions", "evaluation_samples", "accuracy", "macro_precision",
-                                             "macro_recall", "macro_f1", "client_latency_ms")}, indent=2))
+                                             "macro_recall", "macro_f1", "client_latency_ms",
+                                             "rejected_by_input_check")}, indent=2))
 
 
 if __name__ == "__main__":

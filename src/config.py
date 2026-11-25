@@ -9,6 +9,7 @@ Environment-variable overrides (useful in Docker, Colab and Kaggle):
     OVASCOPE_MODELS_DIR     model folder
     OVASCOPE_ARTIFACTS_DIR  outputs folder
     OVASCOPE_DB             SQLite database file
+    OVASCOPE_GATE_DATA_DIR  non-egg images for the input check (egg gate)
 """
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ ENV_OVERRIDES = {
     "uploads_dir": "OVASCOPE_UPLOADS_DIR",
     "raw_dir": "OVASCOPE_RAW_DIR",
     "extracted_dir": "OVASCOPE_EXTRACTED_DIR",
+    "gate_data_dir": "OVASCOPE_GATE_DATA_DIR",
 }
 
 

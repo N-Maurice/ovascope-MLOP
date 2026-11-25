@@ -4,6 +4,7 @@ data/extracted/
 data/processed/crops/
 data/bundle/
 data/uploads/
+data/gate/
 data/*.zip
 
 # --- Runtime state ---
@@ -12,6 +13,7 @@ models/checkpoints/
 artifacts/logs/
 artifacts/exports/
 artifacts/metrics/*_probabilities.npy
+artifacts/metrics/gate_test_scores.npy
 # duplicate of crop_image_stats.csv written by the notebook
 artifacts/metrics/crop_image_stats_notebook.csv
 

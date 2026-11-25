@@ -1,5 +1,5 @@
 {
-  "version": "v002_mobilenetv2",
+  "version": "v004_mobilenetv2",
   "kind": "mobilenetv2",
   "architecture": "ovascope_mobilenetv2",
   "parent_version": null,
@@ -10,27 +10,27 @@
   ],
   "input_range": "[0, 255] RGB (model rescales internally)",
   "num_classes": 11,
-  "created_at": "2026-11-25T03:08:42+00:00",
+  "created_at": "2026-11-25T14:55:51+00:00",
   "epochs_completed": 30,
-  "best_epoch": 27,
-  "final_learning_rate": 2.499999936844688e-06,
-  "final_train_loss": 0.1277606338262558,
-  "final_train_accuracy": 0.9560720920562744,
-  "best_val_loss": 0.2452394962310791,
+  "best_epoch": 30,
+  "final_learning_rate": 4.999999873689376e-06,
+  "final_train_loss": 0.13717623054981232,
+  "final_train_accuracy": 0.9508476257324219,
+  "best_val_loss": 0.23085638880729675,
   "validation_metrics": {
     "samples": 1652,
-    "accuracy": 0.9176755447941889,
-    "loss": 0.24523957073688507,
-    "log_loss": 0.24523957073688507,
-    "balanced_accuracy": 0.9176560305037126,
-    "macro_precision": 0.9216615360961218,
-    "macro_recall": 0.9176560305037126,
-    "macro_f1": 0.9178449806746112,
-    "weighted_precision": 0.921696202182428,
-    "weighted_recall": 0.9176755447941889,
-    "weighted_f1": 0.9178732437162229,
-    "roc_auc_macro": 0.9963879472288476,
-    "pr_auc_macro": 0.972812038605841
+    "accuracy": 0.9303874092009685,
+    "loss": 0.23085640370845795,
+    "log_loss": 0.23085640370845795,
+    "balanced_accuracy": 0.9303993578165763,
+    "macro_precision": 0.9325378409326149,
+    "macro_recall": 0.9303993578165763,
+    "macro_f1": 0.9308134468765247,
+    "weighted_precision": 0.9325938118773331,
+    "weighted_recall": 0.9303874092009685,
+    "weighted_f1": 0.930835113265407,
+    "roc_auc_macro": 0.9965724242267775,
+    "pr_auc_macro": 0.97555079273867
   },
   "parameters": {
     "total": 2272075,
@@ -43,15 +43,15 @@
   },
   "model_size_mb": 24.53,
   "sha256": {
-    "model.keras": "417fcc01c15fde99d3c2d205e4037316e81b4f77c94d12b24202c0e38b6f450f",
-    "model.h5": "728fbd5ea8dca873a7e92771efa209c0281217462a6706da3d743139ba8d561b"
+    "model.keras": "5e940eb321b77ba00d673db560e377d5e6380b95cfafb8f902dffaf87bcc9516",
+    "model.h5": "46dbb5fc4397fbcb49599f10d86f929eba891b90c0a5de38a58d9081379fc4d9"
   },
   "h5_export": {
     "h5_reload_ok": true,
     "max_abs_difference_vs_keras": 0.0
   },
   "environment": {
-    "date_utc": "2026-11-25T03:08:42+00:00",
+    "date_utc": "2026-11-25T14:55:51+00:00",
     "python": "3.12.16",
     "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
     "tensorflow": "2.21.0",
@@ -66,32 +66,32 @@
       "Quadro RTX 3000"
     ]
   },
-  "training_seconds": 1303.3,
+  "training_seconds": 2111.7,
   "pretrained_weights": "imagenet",
   "fine_tuning": {
     "performed": true,
     "unfrozen_from_layer": 100,
     "trainable_backbone_layers": 36,
-    "head_val_macro_f1": 0.8645405979951807,
-    "fine_tuned_val_macro_f1": 0.9178449806746112,
-    "head_val_accuracy": 0.8656174334140436,
-    "fine_tuned_val_accuracy": 0.9176755447941889,
+    "head_val_macro_f1": 0.8649895230058305,
+    "fine_tuned_val_macro_f1": 0.9308134468765247,
+    "head_val_accuracy": 0.864406779661017,
+    "fine_tuned_val_accuracy": 0.9303874092009685,
     "kept": "fine_tune"
   },
   "test_metrics": {
     "samples": 2228,
-    "accuracy": 0.8227109515260324,
-    "loss": 0.5530975461006165,
-    "log_loss": 0.5530975461006165,
-    "balanced_accuracy": 0.8234539642463001,
-    "macro_precision": 0.8345533868825186,
-    "macro_recall": 0.8234539642463001,
-    "macro_f1": 0.8220921261271634,
-    "weighted_precision": 0.8346262625170473,
-    "weighted_recall": 0.8227109515260324,
-    "weighted_f1": 0.8217991298324867,
-    "roc_auc_macro": 0.9871710829376255,
-    "pr_auc_macro": 0.9152471389121156,
-    "model_version": "v002_mobilenetv2"
+    "accuracy": 0.8105924596050269,
+    "loss": 0.6143098473548889,
+    "log_loss": 0.6143098473548889,
+    "balanced_accuracy": 0.8113147554585648,
+    "macro_precision": 0.8246678610885119,
+    "macro_recall": 0.8113147554585648,
+    "macro_f1": 0.809747260551092,
+    "weighted_precision": 0.8247496968905815,
+    "weighted_recall": 0.8105924596050269,
+    "weighted_f1": 0.8094574882722382,
+    "roc_auc_macro": 0.985589475133064,
+    "pr_auc_macro": 0.9102945098357927,
+    "model_version": "v004_mobilenetv2"
   }
 }

@@ -1,0 +1,6 @@
+source,images,median_confidence,share_confidence_over_0_9,most_common_prediction
+background,500,0.9132711,0.52,Enterobius vermicularis
+cifar100,500,0.9830837,0.69,Opisthorchis viverrini
+egg,2228,0.9868164,0.70601434,Hymenolepis diminuta
+imagenette,1000,0.7057049,0.226,Hookworm egg
+synthetic,50,0.81177956,0.36,Enterobius vermicularis

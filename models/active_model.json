@@ -1,5 +1,5 @@
 {
-  "version": "v002_mobilenetv2",
-  "previous": null,
-  "activated_at": "2026-11-25T03:35:58+00:00"
+  "version": "v004_mobilenetv2",
+  "previous": "v002_mobilenetv2",
+  "activated_at": "2026-11-25T14:56:33+00:00"
 }

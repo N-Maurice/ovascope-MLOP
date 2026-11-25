@@ -1,4 +1,4 @@
 ,Accuracy,Precision,Recall,F1-score,ROC-AUC,PR-AUC,Log loss,balanced accuracy
-Baseline CNN — validation,0.8584,0.8618,0.8583,0.8583,0.9902,0.9333,0.4406,0.8583
-MobileNetV2 — validation,0.9177,0.9217,0.9177,0.9178,0.9964,0.9728,0.2452,0.9177
-Selected model (v002_mobilenetv2) — test,0.8227,0.8346,0.8235,0.8221,0.9872,0.9152,0.5531,0.8235
+Baseline CNN — validation,0.8426,0.846,0.8425,0.8422,0.9858,0.9111,0.5266,0.8425
+MobileNetV2 — validation,0.9304,0.9325,0.9304,0.9308,0.9966,0.9756,0.2309,0.9304
+Selected model (v004_mobilenetv2) — test,0.8106,0.8247,0.8113,0.8097,0.9856,0.9103,0.6143,0.8113

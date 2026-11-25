@@ -1,0 +1,10 @@
+,validation,test
+ALL eggs (accepted),0.9945520581113801,0.9833931777378815
+ALL non-eggs (rejected),0.9526829268292683,0.9409756097560975
+background (rejected),0.838,0.794
+cifar100 (rejected),0.994,0.99
+egg (accepted),0.9945520581113801,0.9833931777378815
+imagenette (rejected),0.987,0.987
+synthetic (rejected),1.0,1.0
+ROC-AUC (egg vs not egg),0.9989795074706195,0.9967250514515917
+images,3702.0,4278.0

@@ -1,0 +1,68 @@
+[
+  {
+    "class_id": 0,
+    "original_name": "Ascaris lumbricoides",
+    "display_name": "Ascaris lumbricoides",
+    "folder": "00_ascaris_lumbricoides"
+  },
+  {
+    "class_id": 1,
+    "original_name": "Capillaria philippinensis",
+    "display_name": "Capillaria philippinensis",
+    "folder": "01_capillaria_philippinensis"
+  },
+  {
+    "class_id": 2,
+    "original_name": "Enterobius vermicularis",
+    "display_name": "Enterobius vermicularis",
+    "folder": "02_enterobius_vermicularis"
+  },
+  {
+    "class_id": 3,
+    "original_name": "Fasciolopsis buski",
+    "display_name": "Fasciolopsis buski",
+    "folder": "03_fasciolopsis_buski"
+  },
+  {
+    "class_id": 4,
+    "original_name": "Hookworm egg",
+    "display_name": "Hookworm egg",
+    "folder": "04_hookworm_egg"
+  },
+  {
+    "class_id": 5,
+    "original_name": "Hymenolepis diminuta",
+    "display_name": "Hymenolepis diminuta",
+    "folder": "05_hymenolepis_diminuta"
+  },
+  {
+    "class_id": 6,
+    "original_name": "Hymenolepis nana",
+    "display_name": "Hymenolepis nana",
+    "folder": "06_hymenolepis_nana"
+  },
+  {
+    "class_id": 7,
+    "original_name": "Opisthorchis viverrine",
+    "display_name": "Opisthorchis viverrini",
+    "folder": "07_opisthorchis_viverrini"
+  },
+  {
+    "class_id": 8,
+    "original_name": "Paragonimus spp",
+    "display_name": "Paragonimus spp.",
+    "folder": "08_paragonimus_spp"
+  },
+  {
+    "class_id": 9,
+    "original_name": "Taenia spp. egg",
+    "display_name": "Taenia spp. egg",
+    "folder": "09_taenia_spp_egg"
+  },
+  {
+    "class_id": 10,
+    "original_name": "Trichuris trichiura",
+    "display_name": "Trichuris trichiura",
+    "folder": "10_trichuris_trichiura"
+  }
+]

@@ -1,0 +1,201 @@
+{
+  "name": "ovascope_egg_gate",
+  "created_at": "2026-11-25T15:17:04Z",
+  "architecture": "MobileNetV2 (ImageNet, frozen) + GAP + dropout + sigmoid",
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "input_range": "[0, 255] RGB (model rescales internally)",
+  "threshold": 0.07896038889884949,
+  "target_egg_recall": 0.995,
+  "negative_sources": [
+    "background",
+    "cifar100",
+    "imagenette",
+    "synthetic"
+  ],
+  "training_images": {
+    "egg": 9379,
+    "non_egg": 10300
+  },
+  "epochs_completed": 8,
+  "training_seconds": 1157.2,
+  "history": {
+    "accuracy": [
+      0.9558920860290527,
+      0.978606641292572,
+      0.9803343415260315,
+      0.980690062046051,
+      0.982570230960846,
+      0.981198251247406,
+      0.9829259514808655,
+      0.9835357666015625
+    ],
+    "auc": [
+      0.9929040670394897,
+      0.9979819059371948,
+      0.9982826709747314,
+      0.9983052015304565,
+      0.9984424710273743,
+      0.9985403418540955,
+      0.9986475110054016,
+      0.9985288977622986
+    ],
+    "loss": [
+      0.11338227242231369,
+      0.058017048984766006,
+      0.05172931030392647,
+      0.049681439995765686,
+      0.04544266685843468,
+      0.04577639326453209,
+      0.044421322643756866,
+      0.04454903304576874
+    ],
+    "val_accuracy": [
+      0.9751485586166382,
+      0.9802809357643127,
+      0.9821717739105225,
+      0.9829821586608887,
+      0.9829821586608887,
+      0.9837925434112549,
+      0.9824419021606445,
+      0.981361448764801
+    ],
+    "val_auc": [
+      0.9977434277534485,
+      0.9985825419425964,
+      0.998886227607727,
+      0.9989222288131714,
+      0.998879611492157,
+      0.9987876415252686,
+      0.998931348323822,
+      0.9989622831344604
+    ],
+    "val_loss": [
+      0.06588991731405258,
+      0.050669606775045395,
+      0.0449565090239048,
+      0.043342892080545425,
+      0.04268713667988777,
+      0.042525216937065125,
+      0.04299977794289589,
+      0.041827064007520676
+    ]
+  },
+  "validation": {
+    "threshold": 0.07896038889884949,
+    "images": 3702,
+    "egg_images": 1652,
+    "non_egg_images": 2050,
+    "egg_acceptance_rate": 0.9945520581113801,
+    "non_egg_rejection_rate": 0.9526829268292683,
+    "accuracy": 0.9713668287412209,
+    "roc_auc": 0.9989795074706195,
+    "confusion": {
+      "eggs_accepted": 1643,
+      "eggs_rejected": 9,
+      "non_eggs_accepted": 97,
+      "non_eggs_rejected": 1953
+    },
+    "per_source": {
+      "background": {
+        "images": 500,
+        "rate": 0.838,
+        "rate_meaning": "rejected",
+        "median_score": 0.0039896974340081215
+      },
+      "cifar100": {
+        "images": 500,
+        "rate": 0.994,
+        "rate_meaning": "rejected",
+        "median_score": 1.8529610770201543e-06
+      },
+      "egg": {
+        "images": 1652,
+        "rate": 0.9945520581113801,
+        "rate_meaning": "accepted",
+        "median_score": 0.9999609589576721
+      },
+      "imagenette": {
+        "images": 1000,
+        "rate": 0.987,
+        "rate_meaning": "rejected",
+        "median_score": 9.997651795856655e-05
+      },
+      "synthetic": {
+        "images": 50,
+        "rate": 1.0,
+        "rate_meaning": "rejected",
+        "median_score": 0.0016418220475316048
+      }
+    }
+  },
+  "test": {
+    "threshold": 0.07896038889884949,
+    "images": 4278,
+    "egg_images": 2228,
+    "non_egg_images": 2050,
+    "egg_acceptance_rate": 0.9833931777378815,
+    "non_egg_rejection_rate": 0.9409756097560975,
+    "accuracy": 0.9630668536699393,
+    "roc_auc": 0.9967250514515917,
+    "confusion": {
+      "eggs_accepted": 2191,
+      "eggs_rejected": 37,
+      "non_eggs_accepted": 121,
+      "non_eggs_rejected": 1929
+    },
+    "per_source": {
+      "background": {
+        "images": 500,
+        "rate": 0.794,
+        "rate_meaning": "rejected",
+        "median_score": 0.007339180912822485
+      },
+      "cifar100": {
+        "images": 500,
+        "rate": 0.99,
+        "rate_meaning": "rejected",
+        "median_score": 2.261999725305941e-06
+      },
+      "egg": {
+        "images": 2228,
+        "rate": 0.9833931777378815,
+        "rate_meaning": "accepted",
+        "median_score": 0.9999517798423767
+      },
+      "imagenette": {
+        "images": 1000,
+        "rate": 0.987,
+        "rate_meaning": "rejected",
+        "median_score": 9.932275133905932e-05
+      },
+      "synthetic": {
+        "images": 50,
+        "rate": 1.0,
+        "rate_meaning": "rejected",
+        "median_score": 0.0015551078831776977
+      }
+    }
+  },
+  "model_size_mb": 9.64,
+  "sha256": "71c224352633aa0932ff78529ab057fab0d0c8a169a20243140d57fd276368a3",
+  "environment": {
+    "date_utc": "2026-11-25T15:17:04+00:00",
+    "python": "3.12.16",
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "tensorflow": "2.21.0",
+    "keras": "3.15.1",
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "scikit_learn": "1.9.1",
+    "pillow": "13.0.0",
+    "cpu_count": 16,
+    "accelerator": "GPU",
+    "gpus": [
+      "Quadro RTX 3000"
+    ]
+  }
+}

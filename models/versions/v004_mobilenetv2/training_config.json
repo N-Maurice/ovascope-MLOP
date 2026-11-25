@@ -1,0 +1,42 @@
+{
+  "training": {
+    "epoch_metrics": true,
+    "image_size": 224,
+    "batch_size": 32,
+    "early_stopping_patience": 5,
+    "reduce_lr_patience": 2,
+    "baseline": {
+      "epochs": 30,
+      "learning_rate": 0.001
+    },
+    "transfer": {
+      "backbone": "mobilenetv2",
+      "head_epochs": 15,
+      "head_learning_rate": 0.001,
+      "fine_tune_epochs": 15,
+      "fine_tune_learning_rate": 1e-05,
+      "fine_tune_from_layer": 100,
+      "dropout": 0.3
+    }
+  },
+  "retraining": {
+    "trigger_threshold": 50,
+    "min_new_images": 5,
+    "epochs": 3,
+    "learning_rate": 1e-05,
+    "replay_images_per_class": 100,
+    "new_image_repeat": 3,
+    "promotion_tolerance": 0.005,
+    "auto_start": false
+  },
+  "dataset": {
+    "zenodo_record": "15866298",
+    "train_json": "Chula-ParasiteEgg-11/Chula-ParasiteEgg-11/labels.json",
+    "train_images": "Chula-ParasiteEgg-11/Chula-ParasiteEgg-11/data",
+    "test_images": "test/data",
+    "test_json_in_raw": "test_labels_200.json",
+    "crop_margin": 0.1,
+    "val_fraction": 0.15
+  },
+  "random_seed": 42
+}

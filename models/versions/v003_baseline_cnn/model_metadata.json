@@ -1,0 +1,71 @@
+{
+  "version": "v003_baseline_cnn",
+  "kind": "baseline_cnn",
+  "architecture": "ovascope_baseline_cnn",
+  "parent_version": null,
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "input_range": "[0, 255] RGB (model rescales internally)",
+  "num_classes": 11,
+  "created_at": "2026-11-25T14:19:53+00:00",
+  "epochs_completed": 30,
+  "best_epoch": 27,
+  "final_learning_rate": 7.812500371073838e-06,
+  "final_train_loss": 0.5905025601387024,
+  "final_train_accuracy": 0.8018978834152222,
+  "best_val_loss": 0.5265980362892151,
+  "validation_metrics": {
+    "samples": 1652,
+    "accuracy": 0.8426150121065376,
+    "loss": 0.5265980362892151,
+    "log_loss": 0.5265980362892151,
+    "balanced_accuracy": 0.8425446518161749,
+    "macro_precision": 0.8460369167245109,
+    "macro_recall": 0.8425446518161749,
+    "macro_f1": 0.8422020329168319,
+    "weighted_precision": 0.8461238061643269,
+    "weighted_recall": 0.8426150121065376,
+    "weighted_f1": 0.8422794838456189,
+    "roc_auc_macro": 0.985841735273295,
+    "pr_auc_macro": 0.9111151410450208
+  },
+  "parameters": {
+    "total": 392683,
+    "trainable": 391723,
+    "non_trainable": 960
+  },
+  "files": {
+    "keras": "model.keras",
+    "h5": "model.h5"
+  },
+  "model_size_mb": 4.79,
+  "sha256": {
+    "model.keras": "9235da62f7352f11a583f4d10897a667d657addbd2d946ff38bab18054a3079a",
+    "model.h5": "2e75ed9560b60b8eb1802c93bb916c2a1a4444144a6ce5860147bd4c4103e934"
+  },
+  "h5_export": {
+    "h5_reload_ok": true,
+    "max_abs_difference_vs_keras": 0.0
+  },
+  "environment": {
+    "date_utc": "2026-11-25T14:19:53+00:00",
+    "python": "3.12.16",
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "tensorflow": "2.21.0",
+    "keras": "3.15.1",
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "scikit_learn": "1.9.1",
+    "pillow": "13.0.0",
+    "cpu_count": 16,
+    "accelerator": "GPU",
+    "gpus": [
+      "Quadro RTX 3000"
+    ]
+  },
+  "training_seconds": 1234.1,
+  "pretrained_weights": null
+}

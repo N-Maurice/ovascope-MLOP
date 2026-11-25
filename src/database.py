@@ -7,11 +7,15 @@ Tables
     uploads         labelled images uploaded for retraining (image bytes stored as BLOB)
     retrain_jobs    one row per retraining run, with status, metrics and decision
     request_log     one row per API prediction request (operational monitoring)
+    users           accounts for the web interface (password stored as a scrypt hash, see src/users.py)
+    sessions        sign-in sessions (only the SHA-256 of each token is stored)
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import os
+import socket
 import sqlite3
 import uuid
 from contextlib import contextmanager
@@ -64,7 +68,33 @@ CREATE TABLE IF NOT EXISTS request_log (
     predicted_class_id INTEGER,
     confidence         REAL
 );
+CREATE TABLE IF NOT EXISTS users (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    username       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    email          TEXT NOT NULL UNIQUE,
+    password_hash  TEXT NOT NULL,
+    role           TEXT NOT NULL DEFAULT 'user',      -- admin | user
+    active         INTEGER NOT NULL DEFAULT 1,
+    created_at     TEXT NOT NULL,
+    last_login     TEXT
+);
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash  TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TEXT NOT NULL,
+    expires_at  TEXT NOT NULL
+);
 """
+INDEXES = """
+CREATE INDEX IF NOT EXISTS idx_request_log_endpoint ON request_log(endpoint, id);
+CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(training_status);
+"""
+
+# Columns added after the first release. init_db adds them to existing databases (no data is lost).
+MIGRATIONS = {
+    "uploads": {"uploaded_by": "TEXT"},
+    "retrain_jobs": {"requested_by": "TEXT", "worker": "TEXT"},   # worker = "<host>:<pid>" running the job
+}
 
 
 @contextmanager
@@ -84,6 +114,12 @@ def connect(db_path: Path):
 def init_db(db_path: Path) -> None:
     with connect(db_path) as db:
         db.executescript(SCHEMA)
+        for table, columns in MIGRATIONS.items():
+            existing = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
+            for column, kind in columns.items():
+                if column not in existing:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
+        db.executescript(INDEXES)
 
 
 # ---------------------------------------------------------------------------
@@ -140,15 +176,16 @@ def resolve_label(label, class_map: list[dict]):
     return None
 
 
-def save_upload(db_path: Path, checked: dict, data: bytes, uploads_dir: Path | None = None, class_folder: str = "") -> dict:
+def save_upload(db_path: Path, checked: dict, data: bytes, uploads_dir: Path | None = None, class_folder: str = "",
+                uploaded_by: str | None = None) -> dict:
     """Insert a validated upload. Duplicate bytes (same SHA-256) are rejected by the UNIQUE constraint."""
     try:
         with connect(db_path) as db:
             cursor = db.execute(
                 "INSERT INTO uploads (filename, image_data, class_id, class_label, file_hash, width, height,"
-                " upload_timestamp, validation_status) VALUES (?,?,?,?,?,?,?,?, 'validated')",
+                " upload_timestamp, validation_status, uploaded_by) VALUES (?,?,?,?,?,?,?,?, 'validated', ?)",
                 (checked["filename"], sqlite3.Binary(data), checked["class_id"], checked["class_label"],
-                 checked["file_hash"], checked["width"], checked["height"], utc_now()))
+                 checked["file_hash"], checked["width"], checked["height"], utc_now(), uploaded_by))
             upload_id = cursor.lastrowid
     except sqlite3.IntegrityError:
         return {"ok": False, "filename": checked["filename"], "reason": "duplicate of an earlier upload"}
@@ -163,7 +200,7 @@ def save_upload(db_path: Path, checked: dict, data: bytes, uploads_dir: Path | N
 def list_uploads(db_path: Path, limit: int = 200) -> list[dict]:
     with connect(db_path) as db:
         rows = db.execute("SELECT id, filename, class_id, class_label, file_hash, width, height, upload_timestamp,"
-                          " validation_status, training_status, used_in_job, length(image_data) AS bytes"
+                          " validation_status, training_status, used_in_job, uploaded_by, length(image_data) AS bytes"
                           " FROM uploads ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
     return [dict(r) for r in rows]
 
@@ -205,7 +242,7 @@ def mark_uploads_used(db_path: Path, upload_ids: list[int], job_id: str) -> None
 JOB_JSON_FIELDS = ("train_metrics", "candidate_metrics", "active_metrics")
 
 
-def create_job_if_idle(db_path: Path, trigger: str = "manual") -> str | None:
+def create_job_if_idle(db_path: Path, trigger: str = "manual", requested_by: str | None = None) -> str | None:
     """Atomically create a queued job unless one is already queued/running. Returns the job id or None."""
     job_id = uuid.uuid4().hex[:12]
     connection = sqlite3.connect(db_path, timeout=30)
@@ -215,8 +252,10 @@ def create_job_if_idle(db_path: Path, trigger: str = "manual") -> str | None:
         if busy:
             connection.rollback()
             return None
-        connection.execute("INSERT INTO retrain_jobs (id, status, progress, created_at, trigger) VALUES (?,?,?,?,?)",
-                           (job_id, "queued", "waiting to start", utc_now(), trigger))
+        connection.execute("INSERT INTO retrain_jobs (id, status, progress, created_at, trigger, requested_by, worker)"
+                           " VALUES (?,?,?,?,?,?,?)",
+                           (job_id, "queued", "waiting to start", utc_now(), trigger, requested_by,
+                            f"{socket.gethostname()}:{os.getpid()}"))
         connection.commit()
         return job_id
     finally:
@@ -253,9 +292,31 @@ def _job_dict(row) -> dict:
     return job
 
 
+def _process_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def fail_stale_jobs(db_path: Path) -> int:
-    """At API start-up, a job still marked running/queued belongs to a dead process: mark it failed."""
+    """At API start-up, mark queued/running jobs whose worker process no longer exists as failed.
+
+    Each job records the host and process id of its worker. Jobs started by another container (another
+    host name) are left alone, so starting or scaling API containers never cancels a running job.
+    Jobs without a recorded worker (created by older versions) are treated as stale."""
+    host = socket.gethostname()
     with connect(db_path) as db:
-        cursor = db.execute("UPDATE retrain_jobs SET status='failed', error='interrupted (service restarted)',"
-                            " finished_at=? WHERE status IN ('queued','running')", (utc_now(),))
-    return cursor.rowcount
+        rows = db.execute("SELECT id, worker FROM retrain_jobs WHERE status IN ('queued','running')").fetchall()
+        stale = []
+        for row in rows:
+            worker_host, _, pid = (row["worker"] or "").rpartition(":")
+            if not row["worker"] or (worker_host == host and not (pid.isdigit() and _process_alive(int(pid)))):
+                stale.append(row["id"])
+        for job_id in stale:
+            db.execute("UPDATE retrain_jobs SET status='failed', error='interrupted (service restarted)', finished_at=?"
+                       " WHERE id=?", (utc_now(), job_id))
+    return len(stale)

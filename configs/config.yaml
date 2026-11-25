@@ -74,6 +74,13 @@ egg_gate:                        # input check: reject images that are not paras
   background_patches: {train: 3000, val: 500, test: 500}       # empty microscope background
   synthetic: {train: 300, val: 50, test: 50}                    # blank / gradient / noise images
 
+auth:                            # web-interface accounts (src/users.py)
+  allow_signup: true             # false: only admins (or `python -m src.users create-admin`) create accounts
+  session_days: 7                # how long a sign-in stays valid
+  min_password_length: 8
+  # The first account created becomes admin; later sign-ups are "user" until an admin promotes them.
+  # OVASCOPE_ADMIN_KEY (environment) still works as an X-API-Key header for scripts and Streamlit.
+
 api:
   max_upload_mb: 10
   allowed_extensions: [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"]

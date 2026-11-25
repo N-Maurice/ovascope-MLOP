@@ -10,24 +10,27 @@
   ],
   "input_range": "[0, 255] RGB (model rescales internally)",
   "num_classes": 11,
-  "created_at": "2026-11-23T11:35:08+00:00",
+  "created_at": "2026-11-25T02:40:57+00:00",
   "epochs_completed": 30,
   "best_epoch": 30,
-  "final_learning_rate": 3.125000148429535e-05,
-  "final_train_loss": 0.5264829993247986,
-  "final_train_accuracy": 0.8223690986633301,
-  "best_val_loss": 0.4304826855659485,
+  "final_learning_rate": 6.25000029685907e-05,
+  "final_train_loss": 0.5245522260665894,
+  "final_train_accuracy": 0.8245015740394592,
+  "best_val_loss": 0.4405691623687744,
   "validation_metrics": {
     "samples": 1652,
-    "accuracy": 0.860774818401937,
-    "loss": 0.4304826557636261,
-    "balanced_accuracy": 0.8607144290587999,
-    "macro_precision": 0.861556656018222,
-    "macro_recall": 0.8607144290587999,
-    "macro_f1": 0.8601078782977818,
-    "weighted_precision": 0.8616131780670829,
-    "weighted_recall": 0.860774818401937,
-    "weighted_f1": 0.8601634955492562
+    "accuracy": 0.8583535108958837,
+    "loss": 0.440569132566452,
+    "log_loss": 0.440569132566452,
+    "balanced_accuracy": 0.8582741320489666,
+    "macro_precision": 0.8617747397645427,
+    "macro_recall": 0.8582741320489666,
+    "macro_f1": 0.8583370024113587,
+    "weighted_precision": 0.8618277805771287,
+    "weighted_recall": 0.8583535108958837,
+    "weighted_f1": 0.858401795100906,
+    "roc_auc_macro": 0.990155128694958,
+    "pr_auc_macro": 0.93327006756492
   },
   "parameters": {
     "total": 392683,
@@ -40,15 +43,15 @@
   },
   "model_size_mb": 4.79,
   "sha256": {
-    "model.keras": "af3b4b52c0215a57ca114d5930974ac55daf39a3bd9a01c373f1dbeb28aae57f",
-    "model.h5": "f6b90db3cce714f069a34ec58b12863f2c497a4f70edd05d8962cb1e1c2b5287"
+    "model.keras": "272bcd5a9c0bd2ad71e32461b76cbc16c3bb07e5e3acf8d34ff1668d143755dd",
+    "model.h5": "5be4cf6a7e509c043d6ff9d6c14387402006dd3f1912f0d08a5af6723525632b"
   },
   "h5_export": {
     "h5_reload_ok": true,
     "max_abs_difference_vs_keras": 0.0
   },
   "environment": {
-    "date_utc": "2026-11-23T11:35:08+00:00",
+    "date_utc": "2026-11-25T02:40:57+00:00",
     "python": "3.12.16",
     "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
     "tensorflow": "2.21.0",
@@ -63,6 +66,6 @@
       "Quadro RTX 3000"
     ]
   },
-  "training_seconds": 1147.2,
+  "training_seconds": 1262.5,
   "pretrained_weights": null
 }

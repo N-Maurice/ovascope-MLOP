@@ -1,5 +1,6 @@
 {
   "training": {
+    "epoch_metrics": true,
     "image_size": 224,
     "batch_size": 32,
     "early_stopping_patience": 5,

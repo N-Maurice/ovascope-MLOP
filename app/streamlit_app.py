@@ -251,7 +251,7 @@ def page_upload():
             if result["rejected"]:
                 st.error(f"{len(result['rejected'])} file(s) rejected")
                 st.dataframe(pd.DataFrame(result["rejected"]), use_container_width=True)
-    records = api_get("/uploads")
+    records = api_get("/uploads", headers=admin_headers())
     if records:
         counts = records["counts"]
         st.subheader("Database records")

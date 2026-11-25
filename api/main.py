@@ -3,15 +3,25 @@
 Run locally:   uvicorn api.main:app --host 0.0.0.0 --port 8000
 Docs:          http://localhost:8000/docs
 
-Public endpoints:     GET /health, POST /predict, GET /model/info, GET /metrics, GET /classes
+Public endpoints:     GET /health, POST /predict, GET /model/info, GET /model/versions, GET /metrics, GET /classes,
+                      GET /classes/{id}/examples/{n}, GET /results/evaluation, GET /results/history/{version},
+                      GET /dataset/summary, GET /gate, GET /retrain/status, GET /auth/status
                       (/predict answers 422 "not_a_parasite_egg" when the egg gate rejects the image)
-Protected endpoints:  POST /upload, POST /retrain, POST /model/activate/{version}, POST /model/rollback
-                      (send header  X-API-Key: <OVASCOPE_ADMIN_KEY>)
+Accounts:             POST /auth/register, POST /auth/login (username or email + password), POST /auth/logout,
+                      GET /auth/me, POST /auth/password
+Admin endpoints:      POST /upload, GET /uploads, GET /uploads/{id}/image, POST /retrain,
+                      POST /model/activate/{version}, POST /model/rollback, POST /auth/verify,
+                      GET /users, PATCH /users/{id}, DELETE /users/{id}
+                      (send  Authorization: Bearer <token from /auth/login>  of an admin account,
+                       or  X-API-Key: <OVASCOPE_ADMIN_KEY>  for scripts)
+
+The React interface in web/ calls these endpoints (see web/README.md).
 """
 from __future__ import annotations
 
 import io
 import os
+import secrets
 import socket
 import threading
 import time
@@ -21,9 +31,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path, PurePosixPath
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, Response
+from pydantic import BaseModel, Field
 
-from src import database, monitoring, registry, retrain
+from src import database, monitoring, registry, results, retrain, users
 from src.config import load_config
 from src.gate import GATE_FOLDER, GATE_METADATA_FILE, NotParasiteEggError
 from src.preprocessing import load_class_map, load_image_from_bytes
@@ -34,6 +46,8 @@ MODELS_DIR = CFG["paths"]["models_dir"]
 MAX_BYTES = CFG["api"]["max_upload_mb"] * 1_000_000
 ALLOWED = set(CFG["api"]["allowed_extensions"])
 ADMIN_KEY = os.environ.get("OVASCOPE_ADMIN_KEY", "")
+AUTH = {"allow_signup": True, "session_days": 7, "min_password_length": 8, **(CFG.get("auth") or {})}
+THROTTLE = users.LoginThrottle()
 INSTANCE = socket.gethostname()   # identifies the container that served a request (load balancing checks)
 
 
@@ -88,6 +102,13 @@ app = FastAPI(title="OvaScope API", version="1.0",
                           "Input: a crop centred on one egg. Research prototype - not a diagnostic device.",
               lifespan=lifespan)
 
+# Browsers block cross-origin calls unless the API allows them. The React dev server (port 5173) and
+# the Docker web container use a same-origin proxy, so this list only matters for other front ends.
+CORS_ORIGINS = [o.strip() for o in os.environ.get(
+    "OVASCOPE_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"],
+                   expose_headers=["X-Served-By", "X-Request-ID"])
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -109,11 +130,37 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-def require_admin(x_api_key: str | None = Header(default=None)):
-    """Basic access control for data-changing endpoints. If OVASCOPE_ADMIN_KEY is unset (local
-    development only) the check is skipped; always set it for a public deployment."""
-    if ADMIN_KEY and x_api_key != ADMIN_KEY:
-        raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key header")
+def _bearer(authorization: str | None) -> str | None:
+    if authorization and authorization.lower().startswith("bearer "):
+        return authorization[7:].strip() or None
+    return None
+
+
+def open_mode() -> bool:
+    """Development only: no admin key configured and no accounts created yet -> admin endpoints are open."""
+    return not ADMIN_KEY and users.count_users(DB) == 0
+
+
+def current_user(authorization: str | None = Header(default=None)) -> dict:
+    user = users.user_from_token(DB, _bearer(authorization))
+    if user is None:
+        raise HTTPException(status_code=401, detail="Please sign in (session missing or expired)")
+    return user
+
+
+def require_admin(x_api_key: str | None = Header(default=None), authorization: str | None = Header(default=None)) -> dict:
+    """Access control for data-changing endpoints: an admin account's session token, or the
+    OVASCOPE_ADMIN_KEY header (for scripts, Streamlit and load tests)."""
+    if ADMIN_KEY and x_api_key and secrets.compare_digest(x_api_key, ADMIN_KEY):
+        return {"username": "admin-key", "role": "admin"}
+    user = users.user_from_token(DB, _bearer(authorization))
+    if user is not None:
+        if user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Your account does not have administrator rights")
+        return user
+    if open_mode():
+        return {"username": None, "role": "admin"}
+    raise HTTPException(status_code=401, detail="Admin sign-in required (Authorization: Bearer token or X-API-Key)")
 
 
 def class_map():
@@ -138,6 +185,170 @@ def health():
 @app.get("/classes")
 def classes():
     return class_map()
+
+
+@app.get("/classes/{class_id}/examples/{index}")
+def class_example(class_id: int, index: int = 0):
+    """A validation crop of the class (test crops are never served). `index` cycles through them."""
+    path = results.example_image(CFG["paths"]["processed_dir"], class_id, index)
+    if path is None:
+        raise HTTPException(status_code=404, detail="No example images available for this class")
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
+
+
+# ---------------------------------------------------------------------------
+# Saved results (read-only; produced by the notebook / training scripts)
+# ---------------------------------------------------------------------------
+
+@app.get("/results/evaluation")
+def results_evaluation():
+    data = results.evaluation(CFG["paths"]["artifacts_dir"])
+    if data is None:
+        raise HTTPException(status_code=404, detail="No final evaluation found; run training and evaluation first")
+    data["class_names"] = [c["display_name"] for c in class_map()]
+    return data
+
+
+@app.get("/results/history/{version}")
+def results_history(version: str):
+    if "/" in version or ".." in version:
+        raise HTTPException(status_code=400, detail="Invalid version name")
+    rows = results.training_history(MODELS_DIR, version)
+    if rows is None:
+        raise HTTPException(status_code=404, detail=f"No training history for '{version}'")
+    return rows
+
+
+@app.get("/dataset/summary")
+def dataset_summary():
+    data = results.dataset_summary(CFG["paths"]["artifacts_dir"], class_map())
+    if data is None:
+        raise HTTPException(status_code=404, detail="No dataset audit found; run the data preparation first")
+    return data
+
+
+@app.get("/gate")
+def gate():
+    return results.gate_report(MODELS_DIR, CFG["paths"]["artifacts_dir"])
+
+
+# ---------------------------------------------------------------------------
+# Admin sign-in check (the key itself is the credential; nothing is stored server-side)
+# ---------------------------------------------------------------------------
+
+class Credentials(BaseModel):
+    login: str = Field(min_length=1, max_length=254, description="username or email")
+    password: str = Field(min_length=1, max_length=256)
+    remember: bool = True
+
+
+class Registration(BaseModel):
+    username: str = Field(max_length=64)
+    email: str = Field(max_length=254)
+    password: str = Field(max_length=256)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(max_length=256)
+    new_password: str = Field(max_length=256)
+
+
+class UserUpdate(BaseModel):
+    role: str | None = None
+    active: bool | None = None
+
+
+def _account_error(error: users.AccountError):
+    raise HTTPException(status_code=error.status, detail=str(error))
+
+
+def _session_response(user: dict, remember: bool = True) -> dict:
+    session = users.create_session(DB, user["id"], AUTH["session_days"] if remember else 1)
+    return {"token": session["token"], "expires_at": session["expires_at"], "user": user}
+
+
+@app.get("/auth/status")
+def auth_status():
+    accounts = users.count_users(DB)
+    admins = users.count_users(DB, role="admin", active_only=True)
+    return {"admin_key_required": bool(ADMIN_KEY), "accounts_exist": accounts > 0,
+            "signup_open": bool(AUTH["allow_signup"]) or admins == 0,
+            "first_account_becomes_admin": admins == 0, "open_mode": open_mode(),
+            "min_password_length": AUTH["min_password_length"]}
+
+
+@app.post("/auth/register", status_code=201)
+def register(body: Registration):
+    if not AUTH["allow_signup"] and users.count_users(DB, role="admin", active_only=True) > 0:
+        raise HTTPException(status_code=403, detail="Sign-up is disabled; ask an administrator for an account")
+    try:
+        user = users.create_user(DB, body.username, body.email, body.password,
+                                 min_password_length=AUTH["min_password_length"])
+    except users.AccountError as error:
+        _account_error(error)
+    return _session_response(user)
+
+
+@app.post("/auth/login")
+def login(body: Credentials):
+    try:
+        THROTTLE.check(body.login)
+        user = users.authenticate(DB, body.login, body.password)
+    except users.AccountError as error:
+        if error.status == 401:
+            THROTTLE.failed(body.login)
+        _account_error(error)
+    THROTTLE.succeeded(body.login)
+    return _session_response(user, body.remember)
+
+
+@app.post("/auth/logout", status_code=204)
+def logout(authorization: str | None = Header(default=None)):
+    token = _bearer(authorization)
+    if token:
+        users.end_session(DB, token)
+    return Response(status_code=204)
+
+
+@app.get("/auth/me")
+def me(user: dict = Depends(current_user)):
+    return user
+
+
+@app.post("/auth/password", status_code=204)
+def password(body: PasswordChange, user: dict = Depends(current_user)):
+    try:
+        users.change_password(DB, user["id"], body.current_password, body.new_password, AUTH["min_password_length"])
+    except users.AccountError as error:
+        _account_error(error)
+    return Response(status_code=204)
+
+
+@app.post("/auth/verify")
+def auth_verify(admin: dict = Depends(require_admin)):
+    return {"ok": True, "admin_key_required": bool(ADMIN_KEY), "username": admin.get("username")}
+
+
+@app.get("/users", dependencies=[Depends(require_admin)])
+def list_accounts():
+    return users.list_users(DB)
+
+
+@app.patch("/users/{user_id}", dependencies=[Depends(require_admin)])
+def update_account(user_id: int, body: UserUpdate):
+    try:
+        return users.update_user(DB, user_id, role=body.role, active=body.active)
+    except users.AccountError as error:
+        _account_error(error)
+
+
+@app.delete("/users/{user_id}", status_code=204, dependencies=[Depends(require_admin)])
+def delete_account(user_id: int):
+    try:
+        users.delete_user(DB, user_id)
+    except users.AccountError as error:
+        _account_error(error)
+    return Response(status_code=204)
 
 
 @app.get("/model/info")
@@ -213,7 +424,7 @@ def predict(request: Request, file: UploadFile = File(...)):
 # Upload of labelled training images
 # ---------------------------------------------------------------------------
 
-def _store(filename: str, data: bytes, label, classes, protected) -> dict:
+def _store(filename: str, data: bytes, label, classes, protected, uploaded_by: str | None = None) -> dict:
     checked = database.validate_upload(filename, data, label, classes, ALLOWED, MAX_BYTES, protected)
     if not checked["ok"]:
         return checked
@@ -225,7 +436,7 @@ def _store(filename: str, data: bytes, label, classes, protected) -> dict:
                     "reason": f"does not look like a parasite egg image (egg score {verdict['egg_score']:.3f} "
                               f"< threshold {verdict['threshold']:.3f})"}
     folder = next(c["folder"] for c in classes if c["class_id"] == checked["class_id"])
-    return database.save_upload(DB, checked, data, CFG["paths"]["uploads_dir"], folder)
+    return database.save_upload(DB, checked, data, CFG["paths"]["uploads_dir"], folder, uploaded_by=uploaded_by)
 
 
 def _zip_members(data: bytes, classes):
@@ -251,9 +462,9 @@ def _zip_members(data: bytes, classes):
             yield PurePosixPath(m.filename).name, archive.read(m), PurePosixPath(m.filename).parts[-2]
 
 
-@app.post("/upload", dependencies=[Depends(require_admin)])
+@app.post("/upload")
 def upload(files: list[UploadFile] = File(...), label: str | None = Form(default=None),
-           labels: str | None = Form(default=None)):
+           labels: str | None = Form(default=None), admin: dict = Depends(require_admin)):
     """Upload labelled images for retraining.
 
     Labelling options:
@@ -274,7 +485,7 @@ def upload(files: list[UploadFile] = File(...), label: str | None = Form(default
         else:
             entries = [(item.filename or "", data, per_file[index] if per_file else label)]
         for filename, content, file_label in entries:
-            result = _store(filename, content, file_label, classes, protected)
+            result = _store(filename, content, file_label, classes, protected, admin.get("username"))
             (accepted if result["ok"] else rejected).append(result)
     status = retrain.retraining_status(CFG)
     if CFG["retraining"].get("auto_start") and status["retraining_recommended"] and not status["job_running"]:
@@ -286,27 +497,28 @@ def upload(files: list[UploadFile] = File(...), label: str | None = Form(default
             "retraining": status}
 
 
-@app.get("/uploads")
+@app.get("/uploads", dependencies=[Depends(require_admin)])
 def uploads(limit: int = 200):
     return {"counts": database.upload_counts(DB), "records": database.list_uploads(DB, limit)}
 
 
-@app.get("/uploads/{upload_id}/image")
+@app.get("/uploads/{upload_id}/image", dependencies=[Depends(require_admin)])
 def upload_image(upload_id: int):
     data = database.get_upload_image(DB, upload_id)
     if data is None:
         raise HTTPException(status_code=404, detail="Upload not found")
-    return Response(content=data, media_type="application/octet-stream")
+    kind = {b"\xff\xd8": "image/jpeg", b"\x89P": "image/png", b"BM": "image/bmp"}.get(data[:2], "application/octet-stream")
+    return Response(content=data, media_type=kind)
 
 
 # ---------------------------------------------------------------------------
 # Retraining
 # ---------------------------------------------------------------------------
 
-@app.post("/retrain", dependencies=[Depends(require_admin)])
-def start_retrain():
+@app.post("/retrain")
+def start_retrain(admin: dict = Depends(require_admin)):
     try:
-        job_id = retrain.start_retraining(CFG, trigger="manual")
+        job_id = retrain.start_retraining(CFG, trigger="manual", requested_by=admin.get("username"))
     except retrain.RetrainError as error:
         raise HTTPException(status_code=409, detail=str(error))
     return JSONResponse(status_code=202, content={"job_id": job_id, "status": "queued",

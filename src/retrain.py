@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import socket
 import random
 import shutil
 import subprocess
@@ -52,7 +53,8 @@ def retraining_status(cfg: dict) -> dict:
     }
 
 
-def start_retraining(cfg: dict, trigger: str = "manual", run_in_process: bool = False) -> str:
+def start_retraining(cfg: dict, trigger: str = "manual", run_in_process: bool = False,
+                     requested_by: str | None = None) -> str:
     """Check preconditions, create a job record and launch the worker. Returns the job id."""
     db_path, models_dir = cfg["paths"]["database"], cfg["paths"]["models_dir"]
     pending = database.upload_counts(db_path)["pending"]
@@ -63,7 +65,7 @@ def start_retraining(cfg: dict, trigger: str = "manual", run_in_process: bool = 
     if active is None:
         raise RetrainError("No trained model is active; run initial training first.")
     check_class_mapping(cfg, active)
-    job_id = database.create_job_if_idle(db_path, trigger=trigger)
+    job_id = database.create_job_if_idle(db_path, trigger=trigger, requested_by=requested_by)
     if job_id is None:
         raise RetrainError("A retraining job is already queued or running.")
     if run_in_process:
@@ -72,9 +74,10 @@ def start_retraining(cfg: dict, trigger: str = "manual", run_in_process: bool = 
         log_dir = cfg["paths"]["artifacts_dir"] / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         with open(log_dir / f"retrain_{job_id}.log", "w") as log:
-            subprocess.Popen([sys.executable, "-m", "src.retrain", "--job-id", job_id],
-                             cwd=cfg["paths"]["root"], stdout=log, stderr=subprocess.STDOUT,
-                             env={**os.environ}, start_new_session=True)
+            worker = subprocess.Popen([sys.executable, "-m", "src.retrain", "--job-id", job_id],
+                                      cwd=cfg["paths"]["root"], stdout=log, stderr=subprocess.STDOUT,
+                                      env={**os.environ}, start_new_session=True)
+        database.update_job(db_path, job_id, worker=f"{socket.gethostname()}:{worker.pid}")
     return job_id
 
 

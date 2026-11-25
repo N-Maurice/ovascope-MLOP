@@ -46,6 +46,13 @@ def build_results_zip(cfg) -> Path:
         "accuracy_curve.png": plots / f"{active}_accuracy_curve.png",
         "loss_curve.png": plots / f"{active}_loss_curve.png",
         "predictions.png": plots / "final_test_predictions.png",
+        "epoch_metrics.png": plots / f"{active}_epoch_metrics.png",
+        "roc_pr_curves_test.png": plots / "final_test_roc_pr_curves.png",
+        "performance_summary.png": plots / "performance_summary.png",
+        "per_class_val_vs_test.png": plots / "per_class_val_vs_test.png",
+        "performance_summary.csv": metrics / "performance_summary.csv",
+        "per_class_metrics.csv": metrics / "per_class_metrics_final_model.csv",
+        "validation_metrics.json": metrics / f"{active}_val_metrics.json",
         "dataset_audit.json": metrics / "dataset_audit.json",
     }
     out = artifacts / "exports" / "ovascope_training_results.zip"

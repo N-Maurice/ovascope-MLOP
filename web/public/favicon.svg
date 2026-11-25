@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="OvaScope">
+  <rect width="32" height="32" rx="7" fill="#0B1215"/>
+  <g fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round">
+    <path d="M5 10V6.5A1.5 1.5 0 0 1 6.5 5H10"/><path d="M22 5h3.5A1.5 1.5 0 0 1 27 6.5V10"/>
+    <path d="M27 22v3.5a1.5 1.5 0 0 1-1.5 1.5H22"/><path d="M10 27H6.5A1.5 1.5 0 0 1 5 25.5V22"/>
+  </g>
+  <g transform="rotate(-24 16 16)">
+    <path d="M16 7c4.8 0 7.4 6.6 7.4 10.4S20.2 25 16 25s-7.4-3.8-7.4-7.6S11.2 7 16 7Z" fill="#F4EBD9"/>
+    <circle cx="16" cy="17.6" r="2.6" fill="#0F766E"/>
+  </g>
+</svg>

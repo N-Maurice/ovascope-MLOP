@@ -15,7 +15,15 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 TARGET_USER="${SUDO_USER:-$USER}"
-apt-get update
+# A problem with an unrelated third-party repository (e.g. a renamed PPA) must not stop the install:
+# everything below comes from Ubuntu's own archive, whose package lists still refresh.
+if ! apt-get update; then
+  echo
+  echo "Warning: 'apt-get update' reported a problem with a third-party repository (see above)."
+  echo "Continuing with Ubuntu's own packages. To fix that repository later, run:"
+  echo "  sudo apt-get update --allow-releaseinfo-change"
+  echo
+fi
 
 # make
 command -v make >/dev/null 2>&1 || apt-get install -y make

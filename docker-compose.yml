@@ -20,6 +20,9 @@ services:
       HOME: /tmp                        # writable home for Keras/Matplotlib caches (non-root user)
       MALLOC_ARENA_MAX: "2"             # limits memory fragmentation of TensorFlow on CPU
       MPLCONFIGDIR: /tmp/matplotlib
+      MONGODB_URI: ${MONGODB_URI:-}     # optional copy of the records in MongoDB Atlas (empty = off)
+      MONGODB_USERNAME: ${MONGODB_USERNAME:-}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD:-}
     volumes:
       - ./models:/app/models            # model versions + active pointer (persistent)
       - ./db:/app/db                    # SQLite database (uploads, jobs, request log)

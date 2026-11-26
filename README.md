@@ -4,17 +4,64 @@ End-to-end machine-learning system that classifies microscope images of **parasi
 **11 classes**, with training, evaluation, a prediction API, a web interface, database-backed uploads,
 genuine retraining from the saved model, monitoring, Docker packaging and load testing.
 
+| | |
+|---|---|
+| 🎬 **Video demo** | **<https://youtu.be/1MOPi_T0RBQ>** |
+| 💻 **GitHub** | <https://github.com/N-Maurice/ovascope-MLOP> |
+| 🌐 **Running locally** | web app <http://localhost:8080> · API + docs <http://localhost:8000> · Streamlit <http://localhost:8501> (after `docker compose up -d`, see [Quick start](#quick-start-from-github)) |
+
 > **Scope.** The input is an image **cropped around one egg**. OvaScope does not detect or count eggs in a full
 > microscope photo, and it is a student research prototype — **not a clinically validated diagnostic tool**.
 > Confidence values are model scores, not guarantees.
 
 ## Contents
-1. [Overview and objectives](#1-overview-and-objectives) · 2. [Dataset](#2-dataset) · 3. [Architecture](#3-system-architecture) ·
-4. [Repository structure](#4-repository-structure) · 5. [Installation](#5-installation) · 6. [Dataset setup](#6-dataset-setup) ·
-7. [Notebook](#7-notebook-execution) · 8. [Training](#8-training) · 9. [Results](#9-evaluation-results) ·
-10. [Prediction](#10-prediction) · 11. [Retraining](#11-retraining) · 12. [API](#12-api) · 13. [Streamlit](#13-streamlit-application) ·
-14. [Docker](#14-docker) · 15. [Cloud](#15-cloud-deployment) · 16. [Locust](#16-load-testing-locust) ·
-17. [Tests](#17-tests) · 18. [Video](#18-video-demonstration) · 19. [Limitations](#19-limitations-and-future-work) · 20. [References](#20-references)
+[Quick start](#quick-start-from-github) · 1. [Overview and objectives](#1-overview-and-objectives) · 2. [Dataset](#2-dataset) ·
+3. [Architecture](#3-system-architecture) · 4. [Repository structure](#4-repository-structure) · 5. [Installation](#5-installation) ·
+6. [Dataset setup](#6-dataset-setup) · 7. [Notebook](#7-notebook-execution) · 8. [Training](#8-training) ·
+9. [Results](#9-evaluation-results) · 10. [Prediction](#10-prediction) · 11. [Retraining](#11-retraining) · 12. [API](#12-api) ·
+13. [Web interface](#13-web-interface-react-and-streamlit-application) · 14. [Docker](#14-docker) · 15. [Cloud](#15-cloud-deployment) ·
+16. [Locust](#16-load-testing-locust) · 17. [Tests](#17-tests) · 18. [Video](#18-video-demonstration) ·
+19. [Limitations](#19-limitations-and-future-work) · 20. [References](#20-references)
+
+## Quick start from GitHub
+
+The trained models (`models/versions/`, `.keras` + `.h5`) and a sample of images (`data/train/`, `data/test/`)
+are in the repository, so the application runs right after cloning. You need **Git** and **Docker with Compose**
+(`sudo bash scripts/install_system_tools.sh` installs Docker on Ubuntu).
+
+```bash
+git clone https://github.com/N-Maurice/ovascope-MLOP.git
+cd ovascope-MLOP
+cp .env.example .env                              # then set OVASCOPE_ADMIN_KEY to a long random string
+mkdir -p db data/uploads data/bundle artifacts    # create the mounted folders first (owned by you, not root)
+docker compose up -d --build                      # first build: a few minutes
+docker compose ps                                 # api, gateway, web, ui -> "Up"
+curl localhost:8000/health                        # "model_loaded": true
+```
+
+| Open | What |
+|---|---|
+| <http://localhost:8080> | **web app** (React): classify, classes, dataset, performance, status, admin console |
+| <http://localhost:8000> | **API** with interactive documentation (`/docs`) |
+| <http://localhost:8501> | Streamlit app (lightweight alternative) |
+
+1. Open the web app → **Sign in → Create account**. The **first account becomes the administrator**.
+2. **Predict:** *Classify* → upload an image from `data/test/<class>/` → class, confidence, top-3.
+3. **Upload + retrain:** *Admin → Upload* → choose all images of a class folder in `data/train/` (or a ZIP of
+   class folders) → *Admin → Retrain* → **Start retraining**. Retraining needs the validation bundle in
+   `data/bundle/`: build it once with the full dataset (next block).
+4. More containers: `docker compose up -d --scale api=3`. Stop: `docker compose down` (data stays on disk).
+
+**Full dataset (only to retrain or rebuild everything from scratch):**
+```bash
+conda create -n ovascope python=3.12 -y && conda activate ovascope && pip install -r requirements.txt
+python dataset_download/download_dataset.py --prepare   # download from Zenodo (~11.6 GB) + build the crops
+python scripts/export_artifacts.py                      # data/bundle for retraining in Docker
+python -m src.train --model both --select               # optional: train the models again
+```
+
+**Without Docker:** `conda activate ovascope`, then `bash scripts/setup.sh` and `bash scripts/dev.sh`
+(API on :8000, web app on :5173). Details in [Installation](#5-installation).
 
 ## 1. Overview and objectives
 
@@ -95,11 +142,14 @@ vary with magnification.
 | `app/streamlit_app.py` | lightweight Streamlit interface (6 pages) |
 | `notebook/ovascope_ml_pipeline.ipynb` | full documented ML lifecycle with real outputs |
 | `scripts/` | `prepare_data.py`, `audit_dataset.py`, `evaluate_final.py`, `evaluate_deployed.py`, `export_artifacts.py` |
+| `dataset_download/download_dataset.py` | downloads the dataset from Zenodo (resumable, MD5-checked) and rebuilds the crops |
+| `data/train/`, `data/test/` | small image sample in git (5 train + 3 test crops per class) for trying prediction and upload |
+| `src/mongo_sync.py` | optional copy of the records in MongoDB Atlas |
 | `tests/` | pytest suite (preprocessing, prediction, API, retraining) on a synthetic mini-dataset |
-| `load_testing/` | Locust file, experiment runner, analysis, results |
+| `load_testing/` | Locust file, experiment runner, analysis, results (CSV + plots in `load_testing/results/`) |
 | `models/` | model versions (`versions/`), active model copies, protected test hashes |
 | `artifacts/` | metrics, plots, logs, exports |
-| `reports/` | dataset audit, model evaluation, load test report, rubric compliance |
+| `reports/` | dataset audit |
 | `docs/` | deployment guide, demo checklist |
 
 ## 5. Installation
@@ -139,13 +189,21 @@ export LD_LIBRARY_PATH=$(ls -d $CONDA_PREFIX/lib/python3.12/site-packages/nvidia
 
 ## 6. Dataset setup
 
-Download `Chula-ParasiteEgg-11.zip`, `Chula-ParasiteEgg-11_test.zip` and `test_labels_200.json` from
-[Zenodo](https://zenodo.org/records/15866298) into `data/raw/`, then:
+One command downloads the three official files from [Zenodo](https://zenodo.org/records/15866298) into
+`data/raw/` (resumable, MD5-verified) and builds the crops:
+
+```bash
+python dataset_download/download_dataset.py --prepare --audit
+```
+
+Or step by step (after downloading `Chula-ParasiteEgg-11.zip`, `Chula-ParasiteEgg-11_test.zip` and
+`test_labels_200.json` into `data/raw/` yourself):
 
 ```bash
 python scripts/prepare_data.py          # verify MD5s → unzip → build crops → verify (≈3 min with 16 cores)
 python scripts/audit_dataset.py         # audit: duplicates, leakage, statistics → artifacts/metrics/
 ```
+See [dataset_download/README.md](dataset_download/README.md) and [data/README.md](data/README.md).
 
 ## 7. Notebook execution
 
@@ -183,7 +241,31 @@ Seeds are fixed (42); some GPU kernels remain non-deterministic.
 
 ## 9. Evaluation results
 
-RESULTS_PLACEHOLDER
+Two models were trained and compared on the **validation** set; the better one (MobileNetV2) was then evaluated
+**once** on the protected **test** set (2,228 crops from the official test photos, never used for any choice).
+
+| Model | Split | Accuracy | Precision | Recall | F1 (macro) | ROC-AUC | PR-AUC | Log loss |
+|---|---|---|---|---|---|---|---|---|
+| Baseline CNN (v003, 0.39 M parameters) | validation | 0.843 | 0.846 | 0.843 | 0.842 | 0.986 | 0.911 | 0.527 |
+| MobileNetV2 transfer (v004, 2.27 M) | validation | **0.930** | 0.933 | 0.930 | **0.931** | 0.997 | 0.976 | 0.231 |
+| **MobileNetV2 (v004, deployed)** | **test** | **0.811** | 0.825 | 0.811 | **0.810** | 0.986 | 0.910 | 0.614 |
+
+Per class (test F1): Taenia 0.94 · Trichuris 0.88 · Hookworm 0.87 · Fasciolopsis 0.85 · Enterobius 0.85 ·
+Opisthorchis 0.83 · Paragonimus 0.80 · Hymenolepis diminuta 0.78 · Hymenolepis nana 0.72 · Ascaris 0.72 ·
+Capillaria 0.66.
+
+**Interpretation.** The drop from validation (0.93) to test (0.81) is a real distribution shift, not leakage
+(the audit found no duplicates across splits): the official test photos are darker and sharper on average and
+come from different capture conditions. The most frequent test errors are Ascaris → *H. diminuta* (39),
+*H. nana* → *H. diminuta* (38), Capillaria → Opisthorchis (31), Capillaria → Enterobius (24) and Paragonimus →
+Fasciolopsis (23): eggs with similar size and shell appearance. A ROC-AUC of 0.986 shows the correct class is almost
+always ranked high, so the top-3 shown in the interface is useful.
+
+**Egg gate** (refuses images that are not parasite eggs, `src/gate.py`): on the test set it accepts 98.3% of real
+egg crops and rejects 94.1% of non-egg images (ROC-AUC 0.997).
+
+Plots: `artifacts/plots/` (confusion matrix, ROC/PR curves, training curves, per-class validation vs test) and
+the notebook (Sections 13, 17, 18). All numbers come from `artifacts/metrics/`.
 
 ## 10. Prediction
 
@@ -294,8 +376,9 @@ The app has six pages:
 ## 14. Docker
 
 ```bash
-python scripts/export_artifacts.py               # builds data/bundle (validation set + replay sample)
-cp .env.example .env                             # set OVASCOPE_ADMIN_KEY
+python scripts/export_artifacts.py               # builds data/bundle (validation set + replay sample; needs the dataset)
+cp .env.example .env                             # set OVASCOPE_ADMIN_KEY (MONGODB_URI optional)
+mkdir -p db data/uploads data/bundle artifacts   # mounted folders, created by you (the API runs as your user)
 docker compose up -d --build                     # web app :8080, gateway :8000, Streamlit :8501, 1 API
 docker compose up -d --scale api=3               # 3 API containers behind nginx
 curl localhost:8000/health                       # "instance" = container that answered
@@ -305,15 +388,89 @@ docker compose down                              # stop (models/, db/, uploads p
 The images contain code and dependencies only. Models, database, uploads and the data bundle are mounted,
 so nothing large is baked in and everything survives restarts.
 
-DOCKER_STATUS_PLACEHOLDER
+| Container | Image | Port | Role |
+|---|---|---|---|
+| `web` | `web/Dockerfile` (Vite build served by nginx) | 8080 | React app; proxies `/api` to the gateway |
+| `gateway` | `nginx:1.27-alpine` + `deploy/nginx.conf` | 8000 | load balancer (`least_conn`) over all API containers |
+| `api` × N | `Dockerfile`, target `api` (TensorFlow CPU) | internal 8000 | FastAPI; limits: 2 CPUs, 5 GB (`API_CPUS`, `API_MEMORY` in `.env`) |
+| `ui` | `Dockerfile`, target `ui` | 8501 | Streamlit app |
+
+**Verified with Docker Compose 2.40 (Ubuntu):** all containers healthy; prediction, the egg gate, sign-up and
+sign-in, bulk upload to the database and retraining (≈5 min on 2 CPUs, promoted or rejected by the gate rule)
+run inside the containers; `--scale api=3` spreads requests over three containers. The API runs as the host user
+(`HOST_UID`/`HOST_GID`, default 1000), so the files it writes in `db/` and `models/` stay yours.
+TensorFlow's thread pools follow the container's CPU quota, which keeps memory flat during retraining and
+throughput stable under many concurrent requests.
 
 ## 15. Cloud deployment
 
-DEPLOY_STATUS_PLACEHOLDER
+**Status: not deployed on a public cloud yet.** The whole system runs with Docker Compose (section 14); the
+cloud plan is a single VM with Docker (4 vCPU, 8–16 GB RAM, e.g. AWS EC2, Azure, GCP), because retraining needs
+TensorFlow, persistent storage and several API containers, which free single-container PaaS tiers do not provide.
+Step-by-step guide and verification checklist: [docs/deployment.md](docs/deployment.md).
+
+**Evaluating the model in production.** `scripts/evaluate_deployed.py` sends labelled held-out test crops to the
+running service's `POST /predict` and computes accuracy and macro-F1 from the API's answers, so the deployed
+model is checked end to end (preprocessing, egg gate, model, API), separately from latency monitoring:
+```bash
+python scripts/evaluate_deployed.py --url http://localhost:8000 --per-class 0    # 0 = all 2,228 test crops
+```
+Result against the Docker deployment (3 API containers, all 2,228 test crops, `artifacts/metrics/production_evaluation.json`):
+
+| | Offline test (notebook) | Deployed API |
+|---|---|---|
+| accuracy | 0.811 | 0.812 |
+| macro-F1 | 0.810 | 0.811 |
+| model version | v004_mobilenetv2 | v004_mobilenetv2 |
+| refused by the egg gate | – | 37 of 2,228 real egg crops (1.7%); metrics cover the 2,191 accepted |
+| client latency | – | median 34 ms, p95 43 ms |
+
+The deployed service reproduces the offline test result, so preprocessing in production matches training.
 
 ## 16. Load testing (Locust)
 
-LOCUST_PLACEHOLDER
+**Setup.** `load_testing/locustfile.py`: each simulated user posts a real test crop (fixed set of 110 images,
+10 per class, 3.6–358 KB) to `POST /predict`, waiting 0.5–1.5 s between requests. `load_testing/run_experiments.sh`
+runs **5, 20 and 50 users** for **60 s** each against **1, 2 and 3 API containers** (2 CPUs each) behind the nginx
+gateway; `load_testing/analyze_results.py` writes the table and plots. Measured on one machine (Intel Core
+i7-10875H, 8 cores / 16 threads, 14 GB RAM) with Docker Compose.
+
+```bash
+bash load_testing/run_experiments.sh            # ≈12 min; results in load_testing/results/
+```
+
+| Containers | Users | Requests | Failures | Requests/s | Median (ms) | Mean (ms) | p95 (ms) | Max (ms) |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 5 | 270 | 0 | 4.6 | 54 | 125 | 120 | 3,705 |
+| 1 | 20 | 1,068 | 0 | 18.1 | 65 | 89 | 220 | 718 |
+| 1 | 50 | 1,421 | 0 | 24.1 | **930** | 925 | **1,700** | 2,305 |
+| 2 | 5 | 277 | 0 | 4.7 | 40 | 78 | 81 | 2,242 |
+| 2 | 20 | 1,109 | 0 | 18.8 | 45 | 53 | 100 | 171 |
+| 2 | 50 | 2,239 | 0 | 37.9 | **160** | 213 | **570** | 1,028 |
+| 3 | 5 | 278 | 0 | 4.7 | 40 | 71 | 77 | 1,678 |
+| 3 | 20 | 1,093 | 0 | 18.5 | 46 | 56 | 110 | 174 |
+| 3 | 50 | 2,392 | 0 | 40.5 | **110** | 140 | **400** | 803 |
+
+| Response time vs users | Throughput vs containers |
+|---|---|
+| ![median response time](load_testing/results/users_vs_response_time.png) | ![throughput](load_testing/results/containers_vs_throughput.png) |
+| ![p95 vs containers](load_testing/results/containers_vs_p95.png) | ![failure rate](load_testing/results/failure_rate.png) |
+
+**Interpretation.**
+- **No request failed** in any configuration (0 of 10,147).
+- At **5 and 20 users** the load is below what one container can handle; throughput is set by the users' wait
+  time (≈ users ÷ 1 s), and the median stays at 40–65 ms. Extra containers mainly trim the tail (p95 220 → 110 ms).
+- At **50 users one container saturates** (2 CPUs fully busy): requests queue, the median rises to 930 ms and
+  throughput levels off at 24 requests/s. **Two containers** remove most of the queue (38 req/s, median 160 ms,
+  p95 570 ms) and **three** bring the median to 110 ms and p95 to 400 ms at 40 req/s, close to the 45 req/s the
+  50 users can generate. Scaling out therefore pays off once one container is CPU-bound.
+- The maximum values include the first requests after start-up (model warm-up).
+- Two settings made this scaling work, found during these tests: the gateway uses **`least_conn`** (plain
+  round-robin left containers idle while others queued), and TensorFlow's thread pools follow the container's
+  CPU quota (without it, 50 users on 3 containers gave only 12.5 req/s with a 2.5 s median).
+
+Raw Locust CSVs, per-container CPU/memory snapshots (`*_docker_stats.csv`) and the summary
+(`load_test_summary.csv`) are in `load_testing/results/`.
 
 ## 17. Tests
 
@@ -327,15 +484,26 @@ The tests cover:
 - retraining (loads the saved model, creates a new version, keeps the old one, failure safety,
   duplicate-job prevention, trigger).
 
-They run on a synthetic mini-dataset in a temporary folder. TESTS_PLACEHOLDER
+They run on a synthetic mini-dataset in a temporary folder and never touch the real models, database or MongoDB
+cluster. Current result: **81 passed** (`pytest -q`, about 40 s on CPU). The suite also covers accounts and roles,
+database migrations, stale retraining jobs and the MongoDB copy (with `mongomock`). Web interface: `cd web && npm run build`.
 
 ## 18. Video demonstration
 
-Pending — link not yet created. Recording plan: [docs/demo_checklist.md](docs/demo_checklist.md).
+▶️ **<https://youtu.be/1MOPi_T0RBQ>**: dataset and notebook, Docker deployment, web app on laptop and phone,
+live prediction, accounts, bulk upload to the database, retraining with the promotion decision, monitoring,
+MongoDB Atlas copy and load testing.
 
 ## 19. Limitations and future work
 
-LIMITATIONS_PLACEHOLDER
+- **Single-egg crops only.** The model classifies an image centred on one egg; it does not find or count eggs in a
+  full microscope photo. Future work: an object detector (the original boxes are kept in `data/extracted/`).
+- **Domain shift.** Test accuracy (81%) is lower than validation (93%) because the test photos differ in
+  brightness and sharpness. More varied training data, colour normalisation or test-time augmentation could help.
+- **Look-alike species** (the two *Hymenolepis*, Capillaria/Opisthorchis, Ascaris/*H. diminuta*) remain the main source of errors.
+- **Retraining on CPU** takes about 5 minutes for a small batch; large uploads would need a GPU worker or a job queue.
+- **Not deployed on a public cloud yet** (see [Cloud deployment](#15-cloud-deployment)).
+- **Not a medical device:** confidence values are model scores, and no clinical validation was done.
 
 ## 20. References
 
@@ -346,4 +514,4 @@ LIMITATIONS_PLACEHOLDER
 - Sandler, M. et al. *MobileNetV2: Inverted Residuals and Linear Bottlenecks*, CVPR 2018.
 - TensorFlow/Keras, FastAPI, Streamlit, Locust documentation.
 
-GitHub repository: pending (no public URL yet).
+GitHub repository: <https://github.com/N-Maurice/ovascope-MLOP> · Video: <https://youtu.be/1MOPi_T0RBQ>

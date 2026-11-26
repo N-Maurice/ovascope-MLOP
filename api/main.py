@@ -32,7 +32,7 @@ from pathlib import Path, PurePosixPath
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 
 from src import database, monitoring, registry, results, retrain, users
@@ -179,6 +179,12 @@ def class_map():
 # ---------------------------------------------------------------------------
 # Health, model info, metrics
 # ---------------------------------------------------------------------------
+
+@app.get("/", include_in_schema=False)
+def root():
+    """The API has no home page of its own: send visitors to the interactive documentation."""
+    return RedirectResponse(url="/docs")
+
 
 @app.get("/health")
 def health():

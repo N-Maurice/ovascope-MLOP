@@ -82,6 +82,12 @@ auth:                            # web-interface accounts (src/users.py)
   # The first account created becomes admin; later sign-ups are "user" until an admin promotes them.
   # OVASCOPE_ADMIN_KEY (environment) still works as an X-API-Key header for scripts and Streamlit.
 
+mongodb:                         # optional copy of the records in MongoDB Atlas (src/mongo_sync.py)
+  enabled: true                  # used only when MONGODB_URI is set (in .env); SQLite stays the main store
+  database: ovascope             # database name in the cluster
+  sync_interval_seconds: 60      # background copy interval (writes such as uploads trigger one sooner)
+  store_images: true             # also copy the uploaded image bytes (Atlas free tier holds 512 MB)
+
 api:
   max_upload_mb: 10
   allowed_extensions: [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"]

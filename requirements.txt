@@ -11,12 +11,14 @@ PyYAML==6.0.4
 fastapi==0.165.0
 uvicorn[standard]==0.54.0
 python-multipart==0.0.34
+pymongo==4.20.2
 requests==2.34.2
 httpx==0.28.1
 streamlit==1.67.0
 altair==6.3.0
 locust==2.47.0
 pytest==9.2.0
+mongomock==4.3.0
 jupyter==1.1.1
 nbconvert==7.17.2
 nbformat==5.11.1

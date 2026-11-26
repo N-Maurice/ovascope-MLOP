@@ -17,6 +17,7 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ["MONGODB_URI"] = ""   # tests never write to a real MongoDB cluster from .env (they use mongomock)
 
 CLASS_NAMES = ["Ascaris lumbricoides", "Capillaria philippinensis", "Enterobius vermicularis", "Fasciolopsis buski",
                "Hookworm egg", "Hymenolepis diminuta", "Hymenolepis nana", "Opisthorchis viverrine",

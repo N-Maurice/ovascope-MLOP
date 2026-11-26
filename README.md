@@ -243,6 +243,7 @@ or `curl -F file=@egg.jpg http://localhost:8000/predict`.
 | `/auth/me`, `/auth/logout`, `/auth/password` | GET, POST, POST | current account; end the session; change password (signed in) |
 | `/auth/status`, `/auth/verify` | GET, POST 🔒 | sign-up/first-admin state; check admin credentials |
 | `/users`, `/users/{id}` | GET, PATCH, DELETE 🔒 | list accounts; change role (admin/user) or active flag; delete |
+| `/mongo/status`, `/mongo/sync` | GET, POST 🔒 | MongoDB Atlas copy: state, last sync, document counts; copy now |
 
 🔒 requires an **administrator**: either `Authorization: Bearer <token>` from `/auth/login` of an account with the
 admin role, or the operator header `X-API-Key: <OVASCOPE_ADMIN_KEY>` (scripts, Streamlit, load tests).
@@ -256,6 +257,16 @@ Command line: `python -m src.users create-admin --username NAME --email MAIL`, `
 Uploads and retraining jobs record which account made them (`uploaded_by`, `requested_by`).
 Only on a fresh install with **no** accounts and **no** `OVASCOPE_ADMIN_KEY` are admin endpoints open (development).
 The model is loaded once and swapped atomically when the active version changes. Retraining never runs inside a request.
+
+**MongoDB Atlas copy (optional).** SQLite stays the main store; when `MONGODB_URI` is set in `.env`, the API also
+copies the records to MongoDB (database `ovascope`): `uploads` (with the image bytes), `retrain_jobs`, `request_log`,
+`models` and `users` (username, role and dates only: password hashes and email addresses stay local). The copy runs
+every 60 s and right after uploads, retraining starts and account changes; it is an idempotent upsert, so the API
+keeps working while the cluster is unreachable and catches up afterwards. Settings: `mongodb:` in
+`configs/config.yaml`. Atlas only accepts connections from IP addresses listed under **Security → Network Access**.
+Admin console → Records shows the state and has a **Sync now** button; from the command line:
+`python -m src.mongo_sync status` (connection check + counts) and `python -m src.mongo_sync push` (copy now).
+Browse the documents in Atlas (**Browse Collections**) or with the MongoDB extension for VS Code.
 
 ## 13. Web interface (React) and Streamlit application
 

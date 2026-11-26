@@ -10,10 +10,16 @@
 services:
   api:
     build: {context: ., target: api}
+    # Run as the host user so files written to the mounted folders (database, models, uploads)
+    # stay owned by you. Set HOST_UID/HOST_GID in .env if your ids are not 1000.
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       OVASCOPE_PROCESSED_DIR: /app/data/bundle
       OVASCOPE_ADMIN_KEY: ${OVASCOPE_ADMIN_KEY:-}
       TF_CPP_MIN_LOG_LEVEL: "2"
+      HOME: /tmp                        # writable home for Keras/Matplotlib caches (non-root user)
+      MALLOC_ARENA_MAX: "2"             # limits memory fragmentation of TensorFlow on CPU
+      MPLCONFIGDIR: /tmp/matplotlib
     volumes:
       - ./models:/app/models            # model versions + active pointer (persistent)
       - ./db:/app/db                    # SQLite database (uploads, jobs, request log)
@@ -23,7 +29,7 @@ services:
     expose: ["8000"]
     deploy:
       resources:
-        limits: {cpus: "${API_CPUS:-2}", memory: 3g}
+        limits: {cpus: "${API_CPUS:-2}", memory: "${API_MEMORY:-5g}"}
     restart: unless-stopped
 
   gateway:

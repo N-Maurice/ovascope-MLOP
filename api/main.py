@@ -11,7 +11,7 @@ Accounts:             POST /auth/register, POST /auth/login (username or email +
                       GET /auth/me, POST /auth/password
 Admin endpoints:      POST /upload, GET /uploads, GET /uploads/{id}/image, POST /retrain,
                       POST /model/activate/{version}, POST /model/rollback, POST /auth/verify,
-                      GET /users, PATCH /users/{id}, DELETE /users/{id}
+                      GET /users, PATCH /users/{id}, DELETE /users/{id}, GET /mongo/status, POST /mongo/sync
                       (send  Authorization: Bearer <token from /auth/login>  of an admin account,
                        or  X-API-Key: <OVASCOPE_ADMIN_KEY>  for scripts)
 
@@ -36,6 +36,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from src import database, monitoring, registry, results, retrain, users
+from src.mongo_sync import MongoMirror
 from src.config import load_config
 from src.gate import GATE_FOLDER, GATE_METADATA_FILE, NotParasiteEggError
 from src.preprocessing import load_class_map, load_image_from_bytes
@@ -87,6 +88,9 @@ class ModelHolder:
 
 
 MODEL = ModelHolder()
+MIRROR = MongoMirror(CFG)   # optional copy of the records in MongoDB Atlas (off unless MONGODB_URI is set)
+# Successful writes to these paths trigger a MongoDB sync soon after (instead of waiting for the interval).
+SYNC_AFTER = ("/upload", "/retrain", "/auth/register", "/users", "/model/activate", "/model/rollback")
 
 
 @asynccontextmanager
@@ -94,7 +98,9 @@ async def lifespan(app: FastAPI):
     database.init_db(DB)
     database.fail_stale_jobs(DB, stale_minutes=CFG["retraining"].get("stale_job_minutes", 10))
     MODEL.refresh()
+    MIRROR.start()
     yield
+    MIRROR.stop()
 
 
 app = FastAPI(title="OvaScope API", version="1.0",
@@ -119,6 +125,8 @@ async def log_requests(request: Request, call_next):
     latency = (time.perf_counter() - start) * 1000
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Served-By"] = INSTANCE
+    if request.method != "GET" and response.status_code < 400 and request.url.path.startswith(SYNC_AFTER):
+        MIRROR.kick()
     if request.url.path == "/predict":
         info = getattr(request.state, "prediction", {}) or {}
         try:
@@ -547,3 +555,25 @@ def retrain_job_status(job_id: str):
 @app.get("/retrain/jobs")
 def retrain_jobs(limit: int = 20):
     return database.list_jobs(DB, limit)
+
+
+# ---------------------------------------------------------------------------
+# MongoDB Atlas copy (src/mongo_sync.py)
+# ---------------------------------------------------------------------------
+
+@app.get("/mongo/status", dependencies=[Depends(require_admin)])
+def mongo_status(counts: bool = False):
+    """Whether the MongoDB copy is on, when it last synced, and (counts=true) documents per collection."""
+    return MIRROR.status(remote_counts=counts)
+
+
+@app.post("/mongo/sync", dependencies=[Depends(require_admin)])
+def mongo_sync():
+    """Copy every record to MongoDB now."""
+    if not MIRROR.enabled:
+        raise HTTPException(status_code=409, detail="MongoDB copy is off: set MONGODB_URI in .env and restart the API")
+    try:
+        written = MIRROR.sync()
+    except Exception:
+        raise HTTPException(status_code=502, detail=f"MongoDB sync failed: {MIRROR.last_error}")
+    return {"written": written, **MIRROR.status(remote_counts=True)}

@@ -149,7 +149,7 @@ def test_migration_adds_columns_to_old_database(tmp_path):
     database.init_db(old)
     with database.connect(old) as conn:
         assert "uploaded_by" in {r["name"] for r in conn.execute("PRAGMA table_info(uploads)")}
-        assert {"requested_by", "worker"} <= {r["name"] for r in conn.execute("PRAGMA table_info(retrain_jobs)")}
+        assert {"requested_by", "worker", "heartbeat_at"} <= {r["name"] for r in conn.execute("PRAGMA table_info(retrain_jobs)")}
         assert conn.execute("SELECT filename FROM uploads").fetchone()[0] == "kept.jpg"
         assert conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0
 
@@ -161,8 +161,49 @@ def test_stale_job_detection_keeps_other_hosts_jobs(tmp_path):
     with database.connect(db) as conn:
         for job_id, worker in [("dead", f"{socket.gethostname()}:999999"), ("other", "another-container:1"),
                                ("legacy", None)]:
-            conn.execute("INSERT INTO retrain_jobs (id, status, created_at, worker) VALUES (?, 'running', 'x', ?)",
-                         (job_id, worker))
+            conn.execute("INSERT INTO retrain_jobs (id, status, created_at, worker, heartbeat_at)"
+                         " VALUES (?, 'running', '2999-01-01', ?, '2999-01-01')", (job_id, worker))
     assert database.fail_stale_jobs(db) == 2
     assert database.get_job(db, "other")["status"] == "running"
     assert database.get_job(db, "dead")["status"] == "failed"
+
+
+def test_dead_worker_detected_while_api_runs(tmp_path):
+    """A worker that was killed (left as a zombie child) is reported as failed on the next status check."""
+    import socket
+    import subprocess
+    import sys
+    db = tmp_path / "jobs.db"
+    database.init_db(db)
+    worker = subprocess.Popen([sys.executable, "-c", "pass"])
+    while worker.poll() is None:
+        pass
+    # poll() reaped it; start another child and let it exit without being waited for -> zombie
+    zombie = subprocess.Popen([sys.executable, "-c", "pass"])
+    import time
+    time.sleep(1.0)
+    with database.connect(db) as conn:
+        conn.execute("INSERT INTO retrain_jobs (id, status, created_at, worker, heartbeat_at)"
+                     " VALUES ('z', 'running', '2999-01-01', ?, '2999-01-01')", (f"{socket.gethostname()}:{zombie.pid}",))
+        conn.execute("INSERT INTO retrain_jobs (id, status, created_at, worker, heartbeat_at)"
+                     " VALUES ('alive', 'running', '2999-01-01', ?, '2999-01-01')",
+                     (f"{socket.gethostname()}:{__import__('os').getpid()}",))
+    assert database.fail_stale_jobs(db, reason="worker died") == 1
+    assert database.get_job(db, "z")["error"] == "worker died"
+    assert database.get_job(db, "alive")["status"] == "running"
+
+
+def test_silent_job_on_vanished_host_is_failed(tmp_path):
+    """A job from a replaced container (unknown host) is failed once its heartbeat stops."""
+    from datetime import datetime, timedelta, timezone
+    recent = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    old = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat(timespec="seconds")
+    db = tmp_path / "jobs.db"
+    database.init_db(db)
+    with database.connect(db) as conn:
+        conn.execute("INSERT INTO retrain_jobs (id, status, created_at, worker, heartbeat_at) VALUES"
+                     " ('silent', 'running', ?, 'replaced-container:7', ?),"
+                     " ('beating', 'running', ?, 'other-container:7', ?)", (old, old, old, recent))
+    assert database.fail_stale_jobs(db, stale_minutes=10) == 1
+    assert database.get_job(db, "silent")["status"] == "failed"
+    assert database.get_job(db, "beating")["status"] == "running"

@@ -58,6 +58,7 @@ retraining:
   new_image_repeat: 3            # each new image is seen this many times per epoch
   promotion_tolerance: 0.005     # candidate macro-F1 may be at most this much below the active model
   auto_start: false              # true: start a job automatically when the threshold is reached
+  stale_job_minutes: 10          # a job whose worker sent no heartbeat for this long is marked failed
 
 egg_gate:                        # input check: reject images that are not parasite-egg crops (src/gate.py)
   enabled: true                  # false = classify every image without the check

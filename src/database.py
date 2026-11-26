@@ -93,7 +93,8 @@ CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(training_status);
 # Columns added after the first release. init_db adds them to existing databases (no data is lost).
 MIGRATIONS = {
     "uploads": {"uploaded_by": "TEXT"},
-    "retrain_jobs": {"requested_by": "TEXT", "worker": "TEXT"},   # worker = "<host>:<pid>" running the job
+    # worker = "<host>:<pid>" running the job; heartbeat_at = last sign of life from that worker
+    "retrain_jobs": {"requested_by": "TEXT", "worker": "TEXT", "heartbeat_at": "TEXT"},
 }
 
 
@@ -293,30 +294,50 @@ def _job_dict(row) -> dict:
 
 
 def _process_alive(pid: int) -> bool:
+    """True if the process exists and is not a zombie (a dead child that was never waited for)."""
+    try:
+        if os.waitpid(pid, os.WNOHANG)[0] == pid:   # our own child that has exited: reap it
+            return False
+    except ChildProcessError:
+        pass                                         # not our child: fall back to the checks below
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
     except PermissionError:
         return True
-    return True
+    try:
+        state = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
+        return state not in ("Z", "X")
+    except (OSError, IndexError):
+        return True
 
 
-def fail_stale_jobs(db_path: Path) -> int:
+def heartbeat(db_path: Path, job_id: str) -> None:
+    with connect(db_path) as db:
+        db.execute("UPDATE retrain_jobs SET heartbeat_at=? WHERE id=?", (utc_now(), job_id))
+
+
+def fail_stale_jobs(db_path: Path, reason: str = "interrupted (service restarted)", stale_minutes: float = 10) -> int:
     """At API start-up, mark queued/running jobs whose worker process no longer exists as failed.
 
     Each job records the host and process id of its worker. Jobs started by another container (another
     host name) are left alone, so starting or scaling API containers never cancels a running job.
-    Jobs without a recorded worker (created by older versions) are treated as stale."""
+    Workers write a heartbeat every 30 s. A job with no heartbeat for `stale_minutes` is stale on any
+    host (worker killed, container replaced). Jobs without a recorded worker (older versions) are stale."""
+    from datetime import datetime, timedelta, timezone
     host = socket.gethostname()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=stale_minutes)).isoformat(timespec="seconds")
     with connect(db_path) as db:
-        rows = db.execute("SELECT id, worker FROM retrain_jobs WHERE status IN ('queued','running')").fetchall()
+        rows = db.execute("SELECT id, worker, created_at, heartbeat_at FROM retrain_jobs"
+                          " WHERE status IN ('queued','running')").fetchall()
         stale = []
         for row in rows:
             worker_host, _, pid = (row["worker"] or "").rpartition(":")
-            if not row["worker"] or (worker_host == host and not (pid.isdigit() and _process_alive(int(pid)))):
+            silent = (row["heartbeat_at"] or row["created_at"] or "") < cutoff
+            if not row["worker"] or silent or (worker_host == host and not (pid.isdigit() and _process_alive(int(pid)))):
                 stale.append(row["id"])
         for job_id in stale:
-            db.execute("UPDATE retrain_jobs SET status='failed', error='interrupted (service restarted)', finished_at=?"
-                       " WHERE id=?", (utc_now(), job_id))
+            db.execute("UPDATE retrain_jobs SET status='failed', error=?, finished_at=?, progress='failed'"
+                       " WHERE id=?", (reason, utc_now(), job_id))
     return len(stale)

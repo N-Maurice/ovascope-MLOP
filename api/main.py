@@ -92,7 +92,7 @@ MODEL = ModelHolder()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init_db(DB)
-    database.fail_stale_jobs(DB)
+    database.fail_stale_jobs(DB, stale_minutes=CFG["retraining"].get("stale_job_minutes", 10))
     MODEL.refresh()
     yield
 
@@ -525,13 +525,19 @@ def start_retrain(admin: dict = Depends(require_admin)):
                                                   "status_url": f"/retrain/status/{job_id}"})
 
 
+STALE_MINUTES = CFG["retraining"].get("stale_job_minutes", 10)
+WORKER_DIED = "the retraining worker stopped unexpectedly (e.g. out of memory); see artifacts/logs/retrain_<job>.log"
+
+
 @app.get("/retrain/status")
 def retrain_readiness():
+    database.fail_stale_jobs(DB, reason=WORKER_DIED, stale_minutes=STALE_MINUTES)
     return retrain.retraining_status(CFG)
 
 
 @app.get("/retrain/status/{job_id}")
 def retrain_job_status(job_id: str):
+    database.fail_stale_jobs(DB, reason=WORKER_DIED, stale_minutes=STALE_MINUTES)
     job = database.get_job(DB, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")

@@ -25,6 +25,7 @@ import random
 import shutil
 import subprocess
 import sys
+import threading
 import traceback
 from pathlib import Path
 
@@ -129,7 +130,16 @@ def run_job(cfg: dict, job_id: str) -> dict:
     db_path, models_dir = cfg["paths"]["database"], cfg["paths"]["models_dir"]
     r, t = cfg["retraining"], cfg["training"]
     work_dir = cfg["paths"]["artifacts_dir"] / "logs" / f"retrain_{job_id}_data"
-    database.update_job(db_path, job_id, status="running", started_at=registry.utc_now(), progress="loading data")
+    database.update_job(db_path, job_id, status="running", started_at=registry.utc_now(), progress="loading data",
+                        worker=f"{socket.gethostname()}:{os.getpid()}")
+    beating = threading.Event()
+
+    def beat():   # sign of life for the API; stops when the job ends or the process dies
+        while not beating.wait(30):
+            database.heartbeat(db_path, job_id)
+
+    database.heartbeat(db_path, job_id)
+    threading.Thread(target=beat, daemon=True).start()
     try:
         configure_gpu()
         set_seeds(cfg["project"]["random_seed"])
@@ -214,6 +224,7 @@ def run_job(cfg: dict, job_id: str) -> dict:
                             error=f"{error.__class__.__name__}: {error}", progress="failed")
         return database.get_job(db_path, job_id)
     finally:
+        beating.set()
         shutil.rmtree(work_dir, ignore_errors=True)
 
 

@@ -19,6 +19,7 @@ The held-out test set is never used. Jobs run in a separate process
 from __future__ import annotations
 
 import argparse
+import gc
 import os
 import socket
 import random
@@ -119,9 +120,28 @@ def replay_sample(processed_dir: Path, per_class: int, seed: int) -> tuple[list[
     return out_files, out_labels
 
 
+def tf_thread_count() -> int:
+    """CPU threads TensorFlow should use: OVASCOPE_TF_THREADS, else the container's CPU quota, else 0 (TF default).
+
+    Inside a CPU-limited container TensorFlow still sees every host core and creates that many threads
+    and buffers, which wastes memory; matching the quota keeps the worker small."""
+    if os.environ.get("OVASCOPE_TF_THREADS", "").isdigit():
+        return int(os.environ["OVASCOPE_TF_THREADS"])
+    try:
+        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().split()
+        return max(1, round(int(quota) / int(period))) if quota != "max" else 0
+    except (OSError, ValueError):
+        return 0
+
+
 def run_job(cfg: dict, job_id: str) -> dict:
     """Execute one retraining job end to end (called inside the worker process)."""
     import tensorflow as tf
+
+    threads = tf_thread_count()
+    if threads:
+        tf.config.threading.set_intra_op_parallelism_threads(threads)
+        tf.config.threading.set_inter_op_parallelism_threads(max(2, threads))
 
     from src.evaluation import compute_metrics, predict_dataset
     from src.preprocessing import list_split, make_dataset
@@ -187,14 +207,20 @@ def run_job(cfg: dict, job_id: str) -> dict:
         class_names = class_names_from(cfg)
         y_true, candidate_probs = predict_dataset(model, val_ds)
         candidate_metrics = compute_metrics(y_true, candidate_probs, class_names)
-        active_model = tf.keras.models.load_model(model_path, compile=False)
-        _, active_probs = predict_dataset(active_model, val_ds)
-        active_metrics = compute_metrics(y_true, active_probs, class_names)
-
         candidate_version = save_version(
             model, "retrain", cfg, frame, candidate_metrics, parent_version=base_version,
             extra={"retrain_job_id": job_id, "new_images": len(uploads), "replay_images": len(old_files),
                    "pretrained_weights": f"continued from {base_version}"})
+
+        # Free the trained model and the training pipeline before loading the second model: on a
+        # CPU container with a memory limit, holding both at once can get the worker killed.
+        del model, train_ds, history
+        gc.collect()
+        tf.keras.backend.clear_session()
+        active_model = tf.keras.models.load_model(model_path, compile=False)
+        _, active_probs = predict_dataset(active_model, val_ds)
+        active_metrics = compute_metrics(y_true, active_probs, class_names)
+        del active_model
 
         # 6. Promotion decision.
         margin = candidate_metrics["macro_f1"] - active_metrics["macro_f1"]

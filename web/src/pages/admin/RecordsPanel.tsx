@@ -4,6 +4,7 @@ import { API_BASE, authHeaders } from "../../api/client";
 import { useUploads } from "../../api/hooks";
 import { bytes, dateTime, int } from "../../lib/format";
 import { ErrorState, Segmented, Skeleton, Species, Stat } from "../../components/ui";
+import MongoCard from "./MongoCard";
 
 /** Upload thumbnails need the admin key header, so they are fetched as blobs. */
 function AuthImage({ id }: { id: number }) {
@@ -41,6 +42,7 @@ export default function RecordsPanel() {
         <Stat label="Used" value={int(c.used)} hint="already used by a retraining job" />
         <Stat label="Classes pending" value={int(perClass.length)} hint="of 11" />
       </div>
+      <MongoCard />
       {perClass.length > 0 && (
         <div className="card">
           <span className="eyebrow">Pending images per class</span>

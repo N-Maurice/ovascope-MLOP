@@ -65,5 +65,21 @@ export type AuthStatus = {
 export const useAuthStatus = () =>
   useQuery({ queryKey: ["auth-status"], queryFn: () => get<AuthStatus>("/auth/status"), staleTime: 10_000 });
 
+export type MongoStatus = {
+  enabled: boolean;
+  configured: boolean;
+  cluster: string | null;
+  database: string;
+  store_images: boolean;
+  sync_interval_seconds: number;
+  last_sync: string | null;
+  last_error: string | null;
+  last_result: Record<string, number>;
+  documents?: Record<string, number>;
+};
+
+export const useMongoStatus = (enabled: boolean) =>
+  useQuery({ queryKey: ["mongo"], queryFn: () => get<MongoStatus>("/mongo/status"), enabled, refetchInterval: 20_000 });
+
 export const useUsers = (enabled: boolean) =>
   useQuery({ queryKey: ["users"], queryFn: () => get<User[]>("/users"), enabled, refetchInterval: 30_000 });

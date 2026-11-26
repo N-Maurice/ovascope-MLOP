@@ -7,6 +7,8 @@ Classification challenge; Chulalongkorn University and collaborators). Full audi
 
 ```
 data/
+├── train/<NN_class>/*.jpg    # small sample in git: 5 training crops per class (bulk-upload / retraining demo)
+├── test/<NN_class>/*.jpg     # small sample in git: 3 held-out test crops per class (prediction demo)
 ├── raw/                      # official downloads (git-ignored)
 │   ├── Chula-ParasiteEgg-11.zip        # train: 11,000 photos + COCO labels (~9.1 GB)
 │   ├── Chula-ParasiteEgg-11_test.zip   # test: 2,200 photos (~2.4 GB)
@@ -23,6 +25,15 @@ data/
 ```
 
 ## Getting the data
+
+`data/train/` and `data/test/` hold a small sample (88 crops) so the project can be tried right after cloning.
+The full dataset is downloaded and rebuilt with one command (see [dataset_download/](../dataset_download/README.md)):
+
+```bash
+python dataset_download/download_dataset.py --prepare   # download + MD5-check (~11.6 GB), then build the crops
+```
+
+Manual alternative:
 
 1. Download the three files from <https://zenodo.org/records/15866298> into `data/raw/`
    (Zenodo throttles single connections; a download manager with several connections is much faster).

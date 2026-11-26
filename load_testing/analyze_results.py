@@ -15,6 +15,8 @@ RESULTS = Path(__file__).resolve().parent / "results"
 rows = []
 for path in sorted(RESULTS.glob("c*_u*_stats.csv")):
     match = re.match(r"c(\d+)_u(\d+)_stats\.csv", path.name)
+    if not match:   # e.g. c1_u5_docker_stats.csv (container CPU/memory snapshot), not a Locust file
+        continue
     stats = pd.read_csv(path)
     total = stats[stats["Name"] == "Aggregated"].iloc[0]
     rows.append({"containers": int(match.group(1)), "users": int(match.group(2)),

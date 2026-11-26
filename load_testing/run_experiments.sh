@@ -5,16 +5,19 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 DURATION=${DURATION:-60s}
 USERS=${USERS:-"5 20 50"}
+HOST=${HOST:-http://localhost:8000}   # gateway address (another port when testing a separate compose project)
+mkdir -p load_testing/results
 for containers in 1 2 3; do
   docker compose up -d --build --scale api=$containers
   echo "Waiting for $containers healthy API container(s)..."
   until [ "$(docker compose ps api --format json | grep -c '"Health":"healthy"')" -ge "$containers" ]; do sleep 3; done
+  sleep 6   # nginx re-resolves the api name every 5 s, so new replicas join the rotation
   docker compose ps api > "load_testing/results/c${containers}_containers.txt"
   for users in $USERS; do
     docker stats --no-stream --format '{{.Name}},{{.CPUPerc}},{{.MemUsage}}' > /dev/null
     ( sleep 30; docker stats --no-stream --format '{{.Name}},{{.CPUPerc}},{{.MemUsage}}' \
         > "load_testing/results/c${containers}_u${users}_docker_stats.csv" ) &
-    locust -f load_testing/locustfile.py --host http://localhost:8000 --headless \
+    locust -f load_testing/locustfile.py --host "$HOST" --headless \
       -u "$users" -r 5 -t "$DURATION" --csv "load_testing/results/c${containers}_u${users}" --only-summary
     wait
   done

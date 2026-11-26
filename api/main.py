@@ -93,8 +93,25 @@ MIRROR = MongoMirror(CFG)   # optional copy of the records in MongoDB Atlas (off
 SYNC_AFTER = ("/upload", "/retrain", "/auth/register", "/users", "/model/activate", "/model/rollback")
 
 
+def limit_tf_threads() -> None:
+    """Match TensorFlow's thread pools to the container's CPU quota (see retrain.tf_thread_count).
+
+    Without this, TensorFlow sizes its pools for every host core; under many concurrent predictions in a
+    CPU-limited container the extra threads only compete for the quota, which lowers throughput."""
+    threads = retrain.tf_thread_count()
+    if not threads:
+        return
+    import tensorflow as tf
+    try:
+        tf.config.threading.set_intra_op_parallelism_threads(threads)
+        tf.config.threading.set_inter_op_parallelism_threads(max(2, threads))
+    except RuntimeError:   # TensorFlow already initialised in this process (e.g. tests): keep its settings
+        pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    limit_tf_threads()
     database.init_db(DB)
     database.fail_stale_jobs(DB, stale_minutes=CFG["retraining"].get("stale_job_minutes", 10))
     MODEL.refresh()

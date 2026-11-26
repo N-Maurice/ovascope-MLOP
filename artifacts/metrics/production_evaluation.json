@@ -1,0 +1,465 @@
+{
+  "api_url": "http://localhost:8100",
+  "model_versions": [
+    "v004_mobilenetv2"
+  ],
+  "api_instance_at_start": "b3c9a43369ff",
+  "evaluation_samples": 2228,
+  "sampling": "all test crops per class, seed 1",
+  "client_latency_ms": {
+    "median": 34.25429600019925,
+    "p95": 42.84904454998468
+  },
+  "rejected_by_input_check": 37,
+  "rejected_examples": [
+    {
+      "crop": "crops/test/01_capillaria_philippinensis/0293_ann1274.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0249,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/01_capillaria_philippinensis/0583_ann1206.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0681,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/01_capillaria_philippinensis/0599_ann1302.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.053,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/01_capillaria_philippinensis/0917_ann1238.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.065,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/01_capillaria_philippinensis/2007_ann1250.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0106,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/0243_ann1322.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0772,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/0248_ann1345.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.003,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/0511_ann1320.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0539,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/0554_ann1344.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0178,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/0728_ann1376.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0771,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/0948_ann1375.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0027,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/1030_ann248.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0251,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/1114_ann1350.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0195,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/1117_ann1358.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0199,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/1248_ann1357.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0086,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/1527_ann1347.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0151,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/1630_ann1316.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0278,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/02_enterobius_vermicularis/1642_ann1312.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0634,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/03_fasciolopsis_buski/0300_ann1738.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0383,
+      "threshold": 0.079
+    },
+    {
+      "crop": "crops/test/03_fasciolopsis_buski/0406_ann1787.jpg",
+      "error": "not_a_parasite_egg",
+      "message": "This image does not look like a microscope image of a parasite egg. Please upload a microscope photo cropped around a single egg.",
+      "enabled": true,
+      "is_parasite_egg": false,
+      "egg_score": 0.0121,
+      "threshold": 0.079
+    }
+  ],
+  "note": "classification metrics cover the crops that passed the input check",
+  "samples": 2191,
+  "accuracy": 0.8119580100410771,
+  "balanced_accuracy": 0.8130436390914709,
+  "macro_precision": 0.8253912573712257,
+  "macro_recall": 0.8130436390914709,
+  "macro_f1": 0.8112714046968802,
+  "weighted_precision": 0.8260380294103973,
+  "weighted_recall": 0.8119580100410771,
+  "weighted_f1": 0.8110329988603178,
+  "roc_auc_macro": 0.9704692023549787,
+  "pr_auc_macro": 0.8984278131742429,
+  "per_class": {
+    "Ascaris lumbricoides": {
+      "accuracy": 0.6521739130434783,
+      "precision": 0.8035714285714286,
+      "recall": 0.6521739130434783,
+      "f1": 0.72,
+      "roc_auc": 0.9435824762350008,
+      "pr_auc": 0.8245306189707018,
+      "log_loss": 1.7051651011349633,
+      "support": 207
+    },
+    "Capillaria philippinensis": {
+      "accuracy": 0.6060606060606061,
+      "precision": 0.7228915662650602,
+      "recall": 0.6060606060606061,
+      "f1": 0.6593406593406593,
+      "roc_auc": 0.9396600221989083,
+      "pr_auc": 0.7318343469223743,
+      "log_loss": 1.8458368288346336,
+      "support": 198
+    },
+    "Enterobius vermicularis": {
+      "accuracy": 0.8983957219251337,
+      "precision": 0.8076923076923077,
+      "recall": 0.8983957219251337,
+      "f1": 0.850632911392405,
+      "roc_auc": 0.9918865477600948,
+      "pr_auc": 0.9465458469460557,
+      "log_loss": 0.3077449541118915,
+      "support": 187
+    },
+    "Fasciolopsis buski": {
+      "accuracy": 0.9417989417989417,
+      "precision": 0.7807017543859649,
+      "recall": 0.9417989417989417,
+      "f1": 0.8537170263788969,
+      "roc_auc": 0.9962074962074962,
+      "pr_auc": 0.9650647959516087,
+      "log_loss": 0.1253875242304063,
+      "support": 189
+    },
+    "Hookworm egg": {
+      "accuracy": 0.7783251231527094,
+      "precision": 0.9875,
+      "recall": 0.7783251231527094,
+      "f1": 0.8705234159779615,
+      "roc_auc": 0.9563712323200286,
+      "pr_auc": 0.919494652391502,
+      "log_loss": 1.6217484895283076,
+      "support": 203
+    },
+    "Hymenolepis diminuta": {
+      "accuracy": 0.97,
+      "precision": 0.6576271186440678,
+      "recall": 0.97,
+      "f1": 0.7838383838383839,
+      "roc_auc": 0.9943470617780009,
+      "pr_auc": 0.95001086232868,
+      "log_loss": 0.0549828699720932,
+      "support": 200
+    },
+    "Hymenolepis nana": {
+      "accuracy": 0.6649746192893401,
+      "precision": 0.803680981595092,
+      "recall": 0.6649746192893401,
+      "f1": 0.7277777777777777,
+      "roc_auc": 0.9568413361913152,
+      "pr_auc": 0.8437906000440412,
+      "log_loss": 1.5256209321147627,
+      "support": 197
+    },
+    "Opisthorchis viverrini": {
+      "accuracy": 0.8730964467005076,
+      "precision": 0.7926267281105991,
+      "recall": 0.8730964467005076,
+      "f1": 0.8309178743961353,
+      "roc_auc": 0.9837405617868835,
+      "pr_auc": 0.9305019339370096,
+      "log_loss": 0.5542334223264207,
+      "support": 197
+    },
+    "Paragonimus spp.": {
+      "accuracy": 0.84688995215311,
+      "precision": 0.7564102564102564,
+      "recall": 0.84688995215311,
+      "f1": 0.7990970654627539,
+      "roc_auc": 0.9720667828639574,
+      "pr_auc": 0.8805732732325149,
+      "log_loss": 0.7334940487794546,
+      "support": 209
+    },
+    "Taenia spp. egg": {
+      "accuracy": 0.9117647058823529,
+      "precision": 0.9789473684210527,
+      "recall": 0.9117647058823529,
+      "f1": 0.9441624365482234,
+      "roc_auc": 0.9967460059011023,
+      "pr_auc": 0.9899076113738158,
+      "log_loss": 0.2716459976772424,
+      "support": 204
+    },
+    "Trichuris trichiura": {
+      "accuracy": 0.8,
+      "precision": 0.9876543209876543,
+      "recall": 0.8,
+      "f1": 0.8839779005524862,
+      "roc_auc": 0.9437117026619789,
+      "pr_auc": 0.9004514028183698,
+      "log_loss": 1.97502192126061,
+      "support": 200
+    }
+  },
+  "confusion_matrix": [
+    [
+      135,
+      0,
+      0,
+      7,
+      1,
+      39,
+      4,
+      0,
+      20,
+      1,
+      0
+    ],
+    [
+      5,
+      120,
+      22,
+      2,
+      0,
+      1,
+      7,
+      30,
+      11,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      168,
+      5,
+      0,
+      9,
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      178,
+      0,
+      2,
+      0,
+      0,
+      8,
+      0,
+      0
+    ],
+    [
+      7,
+      13,
+      4,
+      8,
+      158,
+      2,
+      2,
+      0,
+      9,
+      0,
+      0
+    ],
+    [
+      2,
+      0,
+      0,
+      0,
+      0,
+      194,
+      2,
+      0,
+      0,
+      2,
+      0
+    ],
+    [
+      7,
+      7,
+      9,
+      0,
+      0,
+      38,
+      131,
+      4,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      16,
+      1,
+      0,
+      0,
+      0,
+      8,
+      172,
+      0,
+      0,
+      0
+    ],
+    [
+      4,
+      0,
+      0,
+      23,
+      1,
+      2,
+      0,
+      0,
+      177,
+      0,
+      2
+    ],
+    [
+      5,
+      0,
+      0,
+      0,
+      0,
+      5,
+      8,
+      0,
+      0,
+      186,
+      0
+    ],
+    [
+      3,
+      7,
+      3,
+      5,
+      0,
+      3,
+      0,
+      10,
+      9,
+      0,
+      160
+    ]
+  ]
+}

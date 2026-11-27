@@ -516,6 +516,35 @@ MongoDB Atlas copy and load testing.
 - **Not deployed on a public cloud yet** (see [Cloud deployment](#15-cloud-deployment)).
 - **Not a medical device:** confidence values are model scores, and no clinical validation was done.
 
+### Improving model performance with transfer learning
+
+The deployed model already uses transfer learning in two stages, set in `configs/config.yaml` under
+`training.transfer`:
+- a classification head is trained on a frozen ImageNet MobileNetV2 (15 epochs, lr 1e-3);
+- the backbone is then fine-tuned from layer 100 of 154 (15 epochs, lr 1e-5).
+
+It gains 9 points of validation macro-F1 over the baseline CNN (0.931 vs 0.842). The remaining weaknesses are the
+domain shift (test 0.810) and the look-alike species. The steps below target them; they are **proposed, not yet
+tested**:
+
+| Step | What to change | Why it should help |
+|---|---|---|
+| 1. Stronger pretrained backbone | Compare EfficientNetV2-B0/S and ConvNeXt-Tiny (`tf.keras.applications`) with MobileNetV2 in `src/model.py`, selected by validation macro-F1 as today | Richer ImageNet features separate fine shell textures better (e.g. *H. nana* vs *H. diminuta*) |
+| 2. Deeper, gradual fine-tuning | Unfreeze in steps (layer 100 → 50 → all), with a lower learning rate for early layers than for late ones and a cosine schedule | Lets mid-level features (edges, shell patterns) adapt to microscopy instead of only the top layers |
+| 3. Higher input resolution | Fine-tune at 320–384 px instead of 224 px | Small eggs (Capillaria, Enterobius) lose detail when resized to 224 px |
+| 4. Domain-closer pretraining | Start from weights pretrained on microscopy or medical images, or continue pretraining self-supervised (SimCLR, DINO) on unlabelled egg photos, including those uploaded through the app | Features learned on similar images reduce the shift between training and test photos |
+| 5. Augmentation for the test conditions | Widen brightness, contrast and blur ranges (currently ±10%) and add colour jitter during fine-tuning | The test photos are darker and sharper, so training should cover those conditions |
+| 6. Distillation for deployment | Fine-tune a large backbone as a teacher, then train MobileNetV2 to match its predictions | Keeps the 34 ms CPU prediction time while transferring most of the larger model's accuracy |
+
+**How to evaluate them:**
+- train each variant with `python -m src.train`;
+- compare them on the validation set only;
+- evaluate the single chosen model once on the protected test set, as for v004.
+
+A variant is worth deploying if it raises test macro-F1, especially for Capillaria, Ascaris and *H. nana*,
+without making the API too slow on CPU. Check the speed with `scripts/evaluate_deployed.py` and Locust.
+The retraining pipeline (section 11) would then fine-tune the new backbone in the same way.
+
 ## 20. References
 
 - Palasuwan, D., Naruenatthanaset, K., Kobchaisawat, T., Chalidabhongse, T. H., Nunthanasup, N., Boonpeng, K.,

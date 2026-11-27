@@ -32,3 +32,6 @@ __pycache__/
 .venv/
 
 push.sh
+.vscode/
+playground-1.mongodb.js
+

@@ -1,0 +1,15 @@
+# HTTPS front door for the cloud server (used by docker-compose.cloud.yml).
+# Caddy obtains and renews Let's Encrypt certificates for both names automatically; plain HTTP on port 80
+# redirects to HTTPS. Both DNS names must point to this server, and ports 80 and 443 must be open to everyone.
+#   WEB_DOMAIN  -> web container (React app; it forwards /api/* to the gateway itself)
+#   API_DOMAIN  -> nginx gateway -> api x N (REST API and /docs)
+
+{$WEB_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:80
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy gateway:80
+}

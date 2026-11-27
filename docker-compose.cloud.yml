@@ -1,0 +1,26 @@
+# Cloud add-on: Caddy terminates HTTPS for the two public domain names and passes the requests to the existing
+# containers. docker-compose.yml stays unchanged and is still all you need on a laptop.
+#
+#   WEB_DOMAIN=ovascope.example.org  API_DOMAIN=ovascope.api.example.org   (in .env; deploy_vm.sh writes them)
+#   docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d
+# deploy_vm.sh also sets COMPOSE_FILE in .env, so plain `docker compose ...` on the server includes this file.
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:?set WEB_DOMAIN in .env}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"                   # HTTP/3
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data                # certificates (kept across restarts, avoids Let's Encrypt rate limits)
+      - caddy_config:/config
+    depends_on: [web, gateway]
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -6,9 +6,11 @@ genuine retraining from the saved model, monitoring, Docker packaging and load t
 
 | | |
 |---|---|
+| 🌐 **Live web app** | **<https://ovascope.mauricenshimyumukiza.world/>** |
+| 📘 **Live API docs** | **<https://ovascope.api.mauricenshimyumukiza.world/docs>** (interactive Swagger UI) |
 | 🎬 **Video demo** | **<https://youtu.be/1MOPi_T0RBQ>** |
 | 💻 **GitHub** | <https://github.com/N-Maurice/ovascope-MLOP> |
-| 🌐 **Running locally** | web app <http://localhost:8080> · API + docs <http://localhost:8000> · Streamlit <http://localhost:8501> (after `docker compose up -d`, see [Quick start](#quick-start-from-github)) |
+| 🖥️ **Running locally** | web app <http://localhost:8080> · API + docs <http://localhost:8000> · Streamlit <http://localhost:8501> (after `docker compose up -d`, see [Quick start](#quick-start-from-github)) |
 
 > **Scope.** The input is an image **cropped around one egg**. OvaScope does not detect or count eggs in a full
 > microscope photo, and it is a student research prototype — **not a clinically validated diagnostic tool**.
@@ -404,17 +406,23 @@ throughput stable under many concurrent requests.
 
 ## 15. Cloud deployment
 
-**Target: AWS EC2.** The cloud runs the same Docker Compose stack as section 14 on one Ubuntu 24.04 instance
-(`m7i-flex.large` or `t3.large`: 2 vCPU, 8 GB RAM, 30 GB disk, Elastic IP), because retraining needs TensorFlow,
-persistent storage and several API containers, which free single-container PaaS tiers do not provide.
-[scripts/deploy_vm.sh](scripts/deploy_vm.sh) installs Docker, clones this repository, creates `.env` with a random
-admin key and starts the containers. On the server, [docker-compose.cloud.yml](docker-compose.cloud.yml) adds
-**Caddy**, which terminates HTTPS (automatic Let's Encrypt certificates) for the two public names:
+**Live on AWS EC2:**
 
 | Address | Serves |
 |---|---|
-| https://ovascope.mauricenshimyumukiza.world | web app (React) |
-| https://ovascope.api.mauricenshimyumukiza.world | REST API, interactive docs at `/docs` |
+| **<https://ovascope.mauricenshimyumukiza.world/>** | web app (React): classify, classes, dataset, performance, status, admin console |
+| **<https://ovascope.api.mauricenshimyumukiza.world/docs>** | interactive API documentation (Swagger UI): try `/predict`, `/health`, ... in the browser |
+| <https://ovascope.api.mauricenshimyumukiza.world/health> | health check: model version, uptime, egg-check status |
+
+The cloud runs the same Docker Compose stack as section 14 on one Ubuntu 24.04 instance
+(`m7i-flex.large`: 2 vCPU, 8 GB RAM, 30 GB disk, Elastic IP, region eu-north-1 Stockholm), because retraining
+needs TensorFlow, persistent storage and several API containers, which free single-container PaaS tiers do not
+provide.
+[scripts/deploy_vm.sh](scripts/deploy_vm.sh) installs Docker, clones this repository, creates `.env` with a random
+admin key and starts the containers. On the server, [docker-compose.cloud.yml](docker-compose.cloud.yml) adds
+**Caddy**, which terminates HTTPS (automatic Let's Encrypt certificates) for the two public names:
+`ovascope.mauricenshimyumukiza.world` → web container, `ovascope.api.mauricenshimyumukiza.world` → nginx gateway →
+API containers. Plain `http://` requests are redirected to `https://`.
 
 The security group opens only ports 80 and 443 (plus SSH); `docker-compose.yml` itself is unchanged.
 Step-by-step guide (instance settings, security group, data bundle upload, verification):
@@ -513,7 +521,8 @@ MongoDB Atlas copy and load testing.
   brightness and sharpness. More varied training data, colour normalisation or test-time augmentation could help.
 - **Look-alike species** (the two *Hymenolepis*, Capillaria/Opisthorchis, Ascaris/*H. diminuta*) remain the main source of errors.
 - **Retraining on CPU** takes about 5 minutes for a small batch; large uploads would need a GPU worker or a job queue.
-- **Not deployed on a public cloud yet** (see [Cloud deployment](#15-cloud-deployment)).
+- **Single cloud server.** The live site runs on one EC2 instance with SQLite; it is available while the instance
+  runs, and scaling beyond one machine would need PostgreSQL and object storage (S3).
 - **Not a medical device:** confidence values are model scores, and no clinical validation was done.
 
 ### Improving model performance with transfer learning
@@ -554,4 +563,5 @@ The retraining pipeline (section 11) would then fine-tune the new backbone in th
 - Sandler, M. et al. *MobileNetV2: Inverted Residuals and Linear Bottlenecks*, CVPR 2018.
 - TensorFlow/Keras, FastAPI, Streamlit, Locust documentation.
 
+Live app: <https://ovascope.mauricenshimyumukiza.world/> · API docs: <https://ovascope.api.mauricenshimyumukiza.world/docs> ·
 GitHub repository: <https://github.com/N-Maurice/ovascope-MLOP> · Video: <https://youtu.be/1MOPi_T0RBQ>

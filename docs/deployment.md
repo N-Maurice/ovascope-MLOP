@@ -7,7 +7,7 @@ The guide uses AWS EC2; the script also works on Google Cloud, Azure or any Ubun
 | Public address | Serves |
 |---|---|
 | **https://ovascope.mauricenshimyumukiza.world** | web app (React) |
-| **https://ovascope.api.mauricenshimyumukiza.world** | REST API, interactive docs at `/docs` |
+| **https://ovascope.api.mauricenshimyumukiza.world** | REST API, interactive docs at [`/docs`](https://ovascope.api.mauricenshimyumukiza.world/docs) |
 
 HTTPS is handled by **Caddy** ([deploy/Caddyfile](../deploy/Caddyfile), added by
 [docker-compose.cloud.yml](../docker-compose.cloud.yml)), which gets and renews Let's Encrypt certificates

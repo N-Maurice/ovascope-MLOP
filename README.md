@@ -404,10 +404,21 @@ throughput stable under many concurrent requests.
 
 ## 15. Cloud deployment
 
-**Status: not deployed on a public cloud yet.** The whole system runs with Docker Compose (section 14); the
-cloud plan is a single VM with Docker (4 vCPU, 8–16 GB RAM, e.g. AWS EC2, Azure, GCP), because retraining needs
-TensorFlow, persistent storage and several API containers, which free single-container PaaS tiers do not provide.
-Step-by-step guide and verification checklist: [docs/deployment.md](docs/deployment.md).
+**Target: AWS EC2.** The cloud runs the same Docker Compose stack as section 14 on one Ubuntu 24.04 instance
+(`m7i-flex.large` or `t3.large`: 2 vCPU, 8 GB RAM, 30 GB disk, Elastic IP), because retraining needs TensorFlow,
+persistent storage and several API containers, which free single-container PaaS tiers do not provide.
+[scripts/deploy_vm.sh](scripts/deploy_vm.sh) installs Docker, clones this repository, creates `.env` with a random
+admin key and starts the containers. On the server, [docker-compose.cloud.yml](docker-compose.cloud.yml) adds
+**Caddy**, which terminates HTTPS (automatic Let's Encrypt certificates) for the two public names:
+
+| Address | Serves |
+|---|---|
+| https://ovascope.mauricenshimyumukiza.world | web app (React) |
+| https://ovascope.api.mauricenshimyumukiza.world | REST API, interactive docs at `/docs` |
+
+The security group opens only ports 80 and 443 (plus SSH); `docker-compose.yml` itself is unchanged.
+Step-by-step guide (instance settings, security group, data bundle upload, verification):
+[docs/deployment.md](docs/deployment.md).
 
 **Evaluating the model in production.** `scripts/evaluate_deployed.py` sends labelled held-out test crops to the
 running service's `POST /predict` and computes accuracy and macro-F1 from the API's answers, so the deployed
